@@ -9,6 +9,7 @@ from app.models.outfit_item import OutfitItem
 from app.models.wear_record import WearRecord
 
 from app.routers.clothes import router as clothes_router
+from app.routers.outfits import router as outfits_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -18,6 +19,7 @@ app = FastAPI(
 )
 
 app.include_router(clothes_router)
+app.include_router(outfits_router)
 
 @app.get("/")
 def root():
