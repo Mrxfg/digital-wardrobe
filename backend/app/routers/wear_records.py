@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.wear_record import WearRecord
 from app.models.outfit import Outfit
+from app.dependencies.auth import get_current_user
 
 from app.schemas.wear_record import (
     WearRecordCreate,
@@ -21,10 +22,12 @@ router = APIRouter(
 )
 def create_wear_record(
     record: WearRecordCreate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     outfit = db.query(Outfit).filter(
-        Outfit.id == record.outfit_id
+        Outfit.id == record.outfit_id,
+        Outfit.user_id == current_user["user_id"]
     ).first()
 
     if not outfit:
@@ -34,7 +37,7 @@ def create_wear_record(
         )
 
     wear_record = WearRecord(
-        user_id=1,
+        user_id=current_user["user_id"],
         outfit_id=record.outfit_id,
         worn_date=record.worn_date
     )
@@ -50,10 +53,13 @@ def create_wear_record(
     response_model=list[WearRecordResponse]
 )
 def get_wear_records(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     return db.query(
         WearRecord
+    ).filter(
+        WearRecord.user_id == current_user["user_id"]
     ).all()
 
 @router.get(
@@ -62,12 +68,14 @@ def get_wear_records(
 )
 def get_wear_record(
     record_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     record = db.query(
         WearRecord
     ).filter(
-        WearRecord.id == record_id
+        WearRecord.id == record_id,
+        WearRecord.user_id == current_user["user_id"]
     ).first()
 
     if not record:
@@ -81,12 +89,14 @@ def get_wear_record(
 @router.delete("/{record_id}")
 def delete_wear_record(
     record_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     record = db.query(
         WearRecord
     ).filter(
-        WearRecord.id == record_id
+        WearRecord.id == record_id,
+        WearRecord.user_id == current_user["user_id"]
     ).first()
 
     if not record:

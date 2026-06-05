@@ -13,6 +13,8 @@ from app.routers.outfits import router as outfits_router
 
 from app.routers.wear_records import router as wear_records_router
 
+from app.routers.auth import router as auth_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -23,6 +25,7 @@ app = FastAPI(
 app.include_router(clothes_router)
 app.include_router(outfits_router)
 app.include_router(wear_records_router)
+app.include_router(auth_router)
 
 @app.get("/")
 def root():
