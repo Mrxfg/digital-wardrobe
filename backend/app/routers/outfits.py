@@ -7,6 +7,7 @@ from app.models.outfit_item import OutfitItem
 from app.models.clothing_item import ClothingItem
 
 from app.schemas.clothing_item import ClothingItemResponse
+from app.dependencies.auth import get_current_user
 
 from app.schemas.outfit_item import (
     OutfitItemCreate,
@@ -30,9 +31,12 @@ router = APIRouter(
     response_model=list[OutfitResponse]
 )
 def get_outfits(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return db.query(Outfit).all()
+    return db.query(Outfit).filter(
+        Outfit.user_id == current_user["user_id"]
+    ).all()
 
 
 @router.get(
@@ -41,10 +45,12 @@ def get_outfits(
 )
 def get_outfit(
     outfit_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     outfit = db.query(Outfit).filter(
-        Outfit.id == outfit_id
+        Outfit.id == outfit_id,
+        Outfit.user_id == current_user["user_id"]
     ).first()
 
     if not outfit:
@@ -62,10 +68,11 @@ def get_outfit(
 )
 def create_outfit(
     outfit: OutfitCreate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     new_outfit = Outfit(
-        user_id=1,
+        user_id=current_user["user_id"],
         name=outfit.name
     )
 
@@ -83,10 +90,12 @@ def create_outfit(
 def update_outfit(
     outfit_id: int,
     outfit: OutfitUpdate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     existing = db.query(Outfit).filter(
-        Outfit.id == outfit_id
+        Outfit.id == outfit_id,
+        Outfit.user_id == current_user["user_id"]
     ).first()
 
     if not existing:
@@ -111,10 +120,12 @@ def update_outfit(
 @router.delete("/{outfit_id}")
 def delete_outfit(
     outfit_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     outfit = db.query(Outfit).filter(
-        Outfit.id == outfit_id
+        Outfit.id == outfit_id,
+        Outfit.user_id == current_user["user_id"]
     ).first()
 
     if not outfit:
@@ -137,11 +148,12 @@ def delete_outfit(
 def add_item_to_outfit(
     outfit_id: int,
     item: OutfitItemCreate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     outfit = db.query(Outfit).filter(
-        Outfit.id == outfit_id
-    ).first()
+        Outfit.id == outfit_id,
+        Outfit.user_id == current_user["user_id"]).first()
 
     if not outfit:
         raise HTTPException(
@@ -150,13 +162,24 @@ def add_item_to_outfit(
         )
 
     clothing = db.query(ClothingItem).filter(
-        ClothingItem.id == item.clothing_item_id
+        ClothingItem.id == item.clothing_item_id,
+        ClothingItem.user_id == current_user["user_id"]
     ).first()
 
     if not clothing:
         raise HTTPException(
             status_code=404,
             detail="Clothing item not found"
+        )
+    existing_item = db.query(OutfitItem).filter(
+        OutfitItem.outfit_id == outfit_id,
+        OutfitItem.clothing_item_id == item.clothing_item_id
+    ).first()
+
+    if existing_item:
+        raise HTTPException(
+            status_code=400,
+            detail="Item already exists in outfit"
         )
 
     outfit_item = OutfitItem(
@@ -177,8 +200,20 @@ def add_item_to_outfit(
 )
 def get_outfit_items(
     outfit_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    outfit = db.query(Outfit).filter(
+        Outfit.id == outfit_id,
+        Outfit.user_id == current_user["user_id"]
+    ).first()
+
+    if not outfit:
+        raise HTTPException(
+            status_code=404,
+            detail="Outfit not found"
+        )
+
     items = (
         db.query(ClothingItem)
         .join(
@@ -193,14 +228,27 @@ def get_outfit_items(
 
     return items
 
+
 @router.delete(
     "/{outfit_id}/items/{item_id}"
 )
 def remove_item_from_outfit(
     outfit_id: int,
     item_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    outfit = db.query(Outfit).filter(
+        Outfit.id == outfit_id,
+        Outfit.user_id == current_user["user_id"]
+    ).first()
+
+    if not outfit:
+        raise HTTPException(
+            status_code=404,
+            detail="Outfit not found"
+        )
+
     outfit_item = db.query(
         OutfitItem
     ).filter(
