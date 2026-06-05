@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.dependencies.auth import get_current_user
 from app.database import get_db
 from app.models.clothing_item import ClothingItem
 from app.schemas.clothing_item import (
@@ -20,10 +21,13 @@ router = APIRouter(
     response_model=list[ClothingItemResponse]
 )
 def get_clothes(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     clothes = db.query(
         ClothingItem
+    ).filter(
+        ClothingItem.user_id == current_user["user_id"]
     ).all()
 
     return clothes
@@ -34,10 +38,12 @@ def get_clothes(
 )
 def get_clothing_by_id(
     item_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     item = db.query(ClothingItem).filter(
-        ClothingItem.id == item_id
+        ClothingItem.id == item_id,
+        ClothingItem.user_id == current_user["user_id"]
     ).first()
 
     if not item:
@@ -52,10 +58,12 @@ def get_clothing_by_id(
 @router.delete("/{item_id}")
 def delete_clothing(
     item_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     item = db.query(ClothingItem).filter(
-        ClothingItem.id == item_id
+        ClothingItem.id == item_id,
+        ClothingItem.user_id == current_user["user_id"]
     ).first()
 
     if not item:
@@ -79,10 +87,12 @@ def delete_clothing(
 def update_clothing(
     item_id: int,
     clothing: ClothingItemUpdate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     item = db.query(ClothingItem).filter(
-        ClothingItem.id == item_id
+        ClothingItem.id == item_id,
+        ClothingItem.user_id == current_user["user_id"]
     ).first()
 
     if not item:
@@ -110,10 +120,11 @@ def update_clothing(
 )
 def create_clothing(
     clothing: ClothingItemCreate,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     new_item = ClothingItem(
-        user_id=1,
+        user_id=current_user["user_id"],
         name=clothing.name,
         category=clothing.category,
         season=clothing.season,
