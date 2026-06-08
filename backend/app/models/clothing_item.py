@@ -47,6 +47,14 @@ class ClothingItem(Base):
         String,
         nullable=False
     )
+    color = Column(
+        String,
+        nullable=False
+    )
+    material = Column(
+        String,
+        nullable=False
+    )
 
     is_deleted = Column(
         Boolean,

@@ -1,6 +1,11 @@
+from turtle import color
+from unicodedata import category
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from typing import Optional
+from sqlalchemy import func
 from app.dependencies.auth import get_current_user
 from app.database import get_db
 from app.models.clothing_item import ClothingItem
@@ -21,16 +26,42 @@ router = APIRouter(
     response_model=list[ClothingItemResponse]
 )
 def get_clothes(
+    name: Optional[str] = None,
+    category: Optional[str] = None,
+    color: Optional[str] = None,
+    season: Optional[str] = None,
+    material: Optional[str] = None,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    clothes = db.query(
-        ClothingItem
-    ).filter(
+    query = db.query(ClothingItem).filter(
         ClothingItem.user_id == current_user["user_id"]
-    ).all()
+    )
 
-    return clothes
+    if name:
+        query = query.filter(
+            ClothingItem.name.ilike(f"%{name}%")
+        )
+
+    if category:
+        query = query.filter(
+            func.lower(ClothingItem.category) == category.lower()
+    )
+
+    if color:
+        query = query.filter(
+            func.lower(ClothingItem.color) == color.lower()
+    )
+
+    if season:
+        query = query.filter(
+            func.lower(ClothingItem.season) == season.lower()
+    )
+    if material:
+        query = query.filter(
+            func.lower(ClothingItem.material) == material.lower()
+    )
+    return query.all()
 
 @router.get(
     "/{item_id}",
@@ -127,7 +158,9 @@ def create_clothing(
         user_id=current_user["user_id"],
         name=clothing.name,
         category=clothing.category,
+        color=clothing.color,
         season=clothing.season,
+        material=clothing.material,
         image_url=clothing.image_url
     )
 
