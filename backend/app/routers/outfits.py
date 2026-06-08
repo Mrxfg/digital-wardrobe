@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
 from app.models.clothing_item import ClothingItem
+from typing import Optional
 
 from app.schemas.clothing_item import ClothingItemResponse
 from app.dependencies.auth import get_current_user
@@ -31,13 +32,20 @@ router = APIRouter(
     response_model=list[OutfitResponse]
 )
 def get_outfits(
+    name: Optional[str] = None,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return db.query(Outfit).filter(
+    query = db.query(Outfit).filter(
         Outfit.user_id == current_user["user_id"]
-    ).all()
+    )
 
+    if name:
+        query = query.filter(
+            Outfit.name.ilike(f"%{name}%")
+        )
+
+    return query.all()
 
 @router.get(
     "/{outfit_id}",
