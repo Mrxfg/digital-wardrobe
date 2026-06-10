@@ -35,7 +35,8 @@ def get_clothes(
     db: Session = Depends(get_db)
 ):
     query = db.query(ClothingItem).filter(
-        ClothingItem.user_id == current_user["user_id"]
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == False
     )
 
     if name:
@@ -63,6 +64,17 @@ def get_clothes(
     )
     return query.all()
 
+
+@router.get("/trash", response_model=list[ClothingItemResponse])
+def get_trash(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return db.query(ClothingItem).filter(
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == True
+    ).all()
+
 @router.get(
     "/{item_id}",
     response_model=ClothingItemResponse
@@ -74,7 +86,8 @@ def get_clothing_by_id(
 ):
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
-        ClothingItem.user_id == current_user["user_id"]
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == False
     ).first()
 
     if not item:
@@ -94,7 +107,8 @@ def delete_clothing(
 ):
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
-        ClothingItem.user_id == current_user["user_id"]
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == False
     ).first()
 
     if not item:
@@ -103,7 +117,7 @@ def delete_clothing(
             detail="Clothing item not found"
         )
 
-    db.delete(item)
+    item.is_deleted = True
     db.commit()
 
     return {
@@ -123,7 +137,8 @@ def update_clothing(
 ):
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
-        ClothingItem.user_id == current_user["user_id"]
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == False
     ).first()
 
     if not item:
@@ -171,3 +186,56 @@ def create_clothing(
     db.refresh(new_item)
 
     return new_item
+
+@router.post("/{item_id}/restore")
+def restore_clothing(
+    item_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(ClothingItem).filter(
+        ClothingItem.id == item_id,
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == True
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Clothing item not found"
+        )
+
+    item.is_deleted = False
+
+    db.commit()
+
+    return {
+        "message": "Clothing item restored successfully"
+    }
+
+
+@router.delete("/{item_id}/permanent")
+def permanent_delete_clothing(
+    item_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(ClothingItem).filter(
+        ClothingItem.id == item_id,
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted == True
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Clothing item not found"
+        )
+
+    db.delete(item)
+
+    db.commit()
+
+    return {
+        "message": "Clothing item permanently deleted"
+    }
