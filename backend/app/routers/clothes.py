@@ -9,6 +9,8 @@ from sqlalchemy import func
 from app.dependencies.auth import get_current_user
 from app.database import get_db
 from app.models.clothing_item import ClothingItem
+from app.models.capsule_item import CapsuleItem
+from app.models.outfit_item import OutfitItem
 from app.schemas.clothing_item import (
     ClothingItemCreate,
     ClothingItemUpdate,
@@ -231,6 +233,14 @@ def permanent_delete_clothing(
             status_code=404,
             detail="Clothing item not found"
         )
+
+    db.query(CapsuleItem).filter(
+        CapsuleItem.clothing_item_id == item_id
+    ).delete()
+
+    db.query(OutfitItem).filter(
+        OutfitItem.clothing_item_id == item_id
+    ).delete()
 
     db.delete(item)
 
