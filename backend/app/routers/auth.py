@@ -34,7 +34,7 @@ def telegram_login(payload: TelegramLogin, db: Session = Depends(get_db)):
 
     token = create_access_token(user.id)
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer"}  # nosec B105
 
 
 @router.get("/me")
