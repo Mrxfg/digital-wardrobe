@@ -20,6 +20,7 @@ class ClothingItemUpdate(BaseModel):
     image_url: str | None = None
     original_image_url: str | None = None
 
+
 class ClothingItemResponse(BaseModel):
     id: int
     user_id: int
