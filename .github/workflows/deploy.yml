@@ -1,12 +1,7 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'backend/**'
-
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+  workflow_dispatch:  # Manual trigger only - run when you're ready to deploy
 
 jobs:
   deploy:
@@ -16,6 +11,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Verify secrets are configured
+      run: |
+        if [ -z "${{ secrets.SERVER_HOST }}" ]; then
+          echo "❌ Error: SERVER_HOST secret is not configured"
+          echo "Please configure deployment secrets in GitHub Settings"
+          exit 1
+        fi
 
     - name: Deploy to Server
       uses: appleboy/ssh-action@v1.0.0
