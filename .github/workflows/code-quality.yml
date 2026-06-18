@@ -1,0 +1,43 @@
+name: Code Quality Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        pip install flake8 black isort pylint bandit
+
+    - name: Run Black (Code Formatter Check)
+      run: |
+        cd backend
+        black --check --diff app
+
+    - name: Run isort (Import Sorter Check)
+      run: |
+        cd backend
+        isort --check-only --diff app
+
+    - name: Run flake8 (Linter)
+      run: |
+        cd backend
+        flake8 app --max-line-length=127 --extend-ignore=E203,W503
+
+    - name: Run Bandit (Security Linter)
+      run: |
+        cd backend
+        bandit -r app -f json -o bandit-report.json || true
+        bandit -r app
