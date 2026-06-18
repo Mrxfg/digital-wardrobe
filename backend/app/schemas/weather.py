@@ -4,35 +4,36 @@ from pydantic import BaseModel
 
 
 class WeatherResponse(BaseModel):
-    temperature: float
-    feels_like: float
-    temp_min: float
-    temp_max: float
-    humidity: int
-    description: str
+    temperature: int
+    feels_like: int
     condition: str
-    icon: str
     wind_speed: float
-    city: str
-    country: str
+    wind_dir: str
+    pressure_mm: int
+    humidity: int
+    daytime: str
+    season: str
+    icon: str
+    obs_time: int
+    location: str
 
 
 class ForecastItem(BaseModel):
-    datetime: str
-    temperature: float
-    feels_like: float
-    temp_min: float
-    temp_max: float
-    description: str
+    date: str
+    temp_avg: int
+    temp_min: int
+    temp_max: int
+    feels_like: int
     condition: str
-    icon: str
     humidity: int
     wind_speed: float
+    pressure_mm: int
+    icon: str
+    daytime: str
 
 
 class ForecastResponse(BaseModel):
-    city: str
-    country: str
+    location: str
     forecasts: list[ForecastItem]
 
 
