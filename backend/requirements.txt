@@ -1,8 +1,11 @@
 fastapi
 uvicorn
 sqlalchemy
+psycopg2-binary
+python-dotenv
 python-jose
 passlib
 python-multipart
 Pillow
 pillow-heif
+rembg[cpu]

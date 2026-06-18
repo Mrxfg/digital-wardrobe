@@ -8,6 +8,7 @@ class ClothingItemCreate(BaseModel):
     season: str
     material: str
     image_url: str | None = None
+    original_image_url: str | None = None
 
 
 class ClothingItemUpdate(BaseModel):
@@ -17,6 +18,7 @@ class ClothingItemUpdate(BaseModel):
     season: str | None = None
     material: str | None = None
     image_url: str | None = None
+    original_image_url: str | None = None
 
 
 class ClothingItemResponse(BaseModel):
@@ -28,6 +30,7 @@ class ClothingItemResponse(BaseModel):
     season: str
     material: str
     image_url: str | None = None
+    original_image_url: str | None = None
 
     class Config:
         from_attributes = True
