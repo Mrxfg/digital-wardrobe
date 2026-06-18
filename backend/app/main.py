@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +28,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# CORS configuration for Telegram Mini App
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific Telegram origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(clothes_router)
 app.include_router(outfits_router)
 app.include_router(wear_records_router)
@@ -40,4 +50,12 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 def root():
     return {
         "message": "Digital Wardrobe Backend"
+    }
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "digital-wardrobe-api",
+        "version": "1.0.0"
     }

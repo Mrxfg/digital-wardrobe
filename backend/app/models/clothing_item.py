@@ -37,6 +37,11 @@ class ClothingItem(Base):
         String,
         nullable=True
     )
+    
+    original_image_url = Column(
+        String,
+        nullable=True
+    )
 
     category = Column(
         String,

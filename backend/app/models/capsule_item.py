@@ -14,12 +14,12 @@ class CapsuleItem(Base):
 
     capsule_id = Column(
         Integer,
-        ForeignKey("capsules.id"),
+        ForeignKey("capsules.id", ondelete="CASCADE"),
         nullable=False
     )
 
     clothing_item_id = Column(
         Integer,
-        ForeignKey("clothing_items.id"),
+        ForeignKey("clothing_items.id", ondelete="CASCADE"),
         nullable=False
     )

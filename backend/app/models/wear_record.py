@@ -28,7 +28,7 @@ class WearRecord(Base):
 
     outfit_id = Column(
         Integer,
-        ForeignKey("outfits.id"),
+        ForeignKey("outfits.id", ondelete="CASCADE"),
         nullable=False
     )
 

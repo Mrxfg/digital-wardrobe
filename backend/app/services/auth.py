@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta
 from jose import jwt
 import os
+import sys
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
+
+if not SECRET_KEY or not ALGORITHM:
+    print("ERROR: SECRET_KEY and ALGORITHM environment variables must be set")
+    print("Please create a .env file with these configurations")
+    sys.exit(1)
 
 
 def create_access_token(user_id: int):

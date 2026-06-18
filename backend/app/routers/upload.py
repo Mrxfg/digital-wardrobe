@@ -1,6 +1,21 @@
+from rembg import remove
 from pathlib import Path
 from uuid import uuid4
 from io import BytesIO
+
+UPLOAD_DIR = Path("uploads")
+ORIGINAL_DIR = UPLOAD_DIR / "original"
+PROCESSED_DIR = UPLOAD_DIR / "processed"
+
+ORIGINAL_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+PROCESSED_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
 
 from fastapi import (
     APIRouter,
@@ -19,8 +34,7 @@ router = APIRouter(
     tags=["Upload"]
 )
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -64,23 +78,51 @@ async def upload_image(
             BytesIO(content)
         ).verify()
 
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail="Invalid image file"
+            detail=f"Invalid image file: {str(e)}"
         )
 
-    extension = Path(
+    original_extension = Path(
         file.filename
     ).suffix.lower()
 
-    filename = f"{uuid4()}{extension}"
+    original_filename = (
+        f"{uuid4()}{original_extension}"
+    )
 
-    filepath = UPLOAD_DIR / filename
+    original_filepath = (
+        ORIGINAL_DIR / original_filename
+    )
 
-    with open(filepath, "wb") as buffer:
+    with open(original_filepath, "wb") as buffer:
         buffer.write(content)
 
+    try:
+        processed_content = remove(content)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Background removal failed: {str(e)}"
+        )
+
+    processed_filename = (
+        f"{uuid4()}.png"
+    )
+
+    processed_filepath = (
+        PROCESSED_DIR / processed_filename
+    )
+
+    with open(processed_filepath, "wb") as buffer:
+        buffer.write(processed_content)
+
     return {
-        "image_url": f"/uploads/{filename}"
+        "image_url":
+            f"/uploads/processed/{processed_filename}",
+
+        "original_image_url":
+            f"/uploads/original/{original_filename}"
     }

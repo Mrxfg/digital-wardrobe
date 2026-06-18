@@ -1,6 +1,3 @@
-from turtle import color
-from unicodedata import category
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -38,7 +35,7 @@ def get_clothes(
 ):
     query = db.query(ClothingItem).filter(
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == False
+        ClothingItem.is_deleted.is_(False)
     )
 
     if name:
@@ -74,7 +71,7 @@ def get_trash(
 ):
     return db.query(ClothingItem).filter(
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == True
+        ClothingItem.is_deleted.is_(True)
     ).all()
 
 @router.get(
@@ -89,7 +86,7 @@ def get_clothing_by_id(
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == False
+        ClothingItem.is_deleted.is_(False)
     ).first()
 
     if not item:
@@ -110,7 +107,7 @@ def delete_clothing(
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == False
+        ClothingItem.is_deleted.is_(False)
     ).first()
 
     if not item:
@@ -140,7 +137,7 @@ def update_clothing(
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == False
+        ClothingItem.is_deleted.is_(False)
     ).first()
 
     if not item:
@@ -178,7 +175,8 @@ def create_clothing(
         color=clothing.color,
         season=clothing.season,
         material=clothing.material,
-        image_url=clothing.image_url
+        image_url=clothing.image_url,
+        original_image_url=clothing.original_image_url
     )
 
     db.add(new_item)
@@ -198,7 +196,7 @@ def restore_clothing(
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == True
+        ClothingItem.is_deleted.is_(True)
     ).first()
 
     if not item:
@@ -225,7 +223,7 @@ def permanent_delete_clothing(
     item = db.query(ClothingItem).filter(
         ClothingItem.id == item_id,
         ClothingItem.user_id == current_user["user_id"],
-        ClothingItem.is_deleted == True
+        ClothingItem.is_deleted.is_(True)
     ).first()
 
     if not item:
