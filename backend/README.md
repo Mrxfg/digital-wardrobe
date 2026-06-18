@@ -1,7 +1,7 @@
 # Digital Wardrobe Backend
 
-![Backend CI](https://github.com/YOUR_USERNAME/digital-wardrobe/workflows/Backend%20CI/badge.svg)
-![Code Quality](https://github.com/YOUR_USERNAME/digital-wardrobe/workflows/Code%20Quality%20Check/badge.svg)
+![Backend CI](https://github.com/Mrxfg/digital-wardrobe/actions/workflows/backend-ci.yml/badge.svg)
+![Code Quality Check](https://github.com/Mrxfg/digital-wardrobe/actions/workflows/code-quality.yml/badge.svg)
 
 Telegram Mini App backend for personal wardrobe management with outfit creation, wear tracking, and AI-powered image processing.
 
