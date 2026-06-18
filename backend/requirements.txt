@@ -8,4 +8,4 @@ passlib
 python-multipart
 Pillow
 pillow-heif
-rembg
+rembg[cpu]
