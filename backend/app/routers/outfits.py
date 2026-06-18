@@ -230,7 +230,7 @@ def get_outfit_items(
         )
         .filter(
             OutfitItem.outfit_id == outfit_id,
-            ClothingItem.is_deleted == False
+            ClothingItem.is_deleted.is_(False)
         )
         .all()
     )

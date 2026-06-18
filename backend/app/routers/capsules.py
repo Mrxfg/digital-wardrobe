@@ -242,7 +242,7 @@ def get_capsule_items(
         )
         .filter(
             CapsuleItem.capsule_id == capsule_id,
-            ClothingItem.is_deleted == False
+            ClothingItem.is_deleted.is_(False)
         )
         .all()
     )
