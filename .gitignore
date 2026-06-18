@@ -219,3 +219,9 @@ __marimo__/
 
 uploads/*
 !uploads/.gitkeep
+!uploads/original/
+!uploads/processed/
+uploads/original/*
+!uploads/original/.gitkeep
+uploads/processed/*
+!uploads/processed/.gitkeep
