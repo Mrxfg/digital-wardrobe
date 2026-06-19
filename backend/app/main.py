@@ -16,7 +16,6 @@ from app.routers.clothes import router as clothes_router
 from app.routers.outfits import router as outfits_router
 from app.routers.upload import router as upload_router
 from app.routers.wear_records import router as wear_records_router
-from app.routers.weather import router as weather_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -37,7 +36,6 @@ app.include_router(wear_records_router)
 app.include_router(auth_router)
 app.include_router(capsules_router)
 app.include_router(upload_router)
-app.include_router(weather_router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
