@@ -10,3 +10,4 @@ Pillow
 pillow-heif
 rembg[cpu]
 httpx
+apscheduler

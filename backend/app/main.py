@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -17,10 +19,21 @@ from app.routers.clothes import router as clothes_router
 from app.routers.outfits import router as outfits_router
 from app.routers.upload import router as upload_router
 from app.routers.wear_records import router as wear_records_router
+from app.services.cleanup import start_scheduler, stop_scheduler
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Digital Wardrobe API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    # Startup: start background scheduler
+    start_scheduler()
+    yield
+    # Shutdown: stop background scheduler gracefully
+    stop_scheduler()
+
+
+app = FastAPI(title="Digital Wardrobe API", version="1.0.0", lifespan=lifespan)
 
 # CORS configuration for Telegram Mini App
 app.add_middleware(
