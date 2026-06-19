@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -45,7 +47,10 @@ def get_clothes(
 @router.get("/trash", response_model=list[ClothingItemResponse])
 def get_trash(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return (
-        db.query(ClothingItem).filter(ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(True)).all()
+        db.query(ClothingItem)
+        .filter(ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(True))
+        .order_by(ClothingItem.deleted_at.desc().nullslast())
+        .all()
     )
 
 
@@ -79,9 +84,10 @@ def delete_clothing(item_id: int, current_user=Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Clothing item not found")
 
     item.is_deleted = True
+    item.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
-    return {"message": "Clothing item deleted successfully"}
+    return {"message": "Clothing item deleted successfully", "deleted_at": item.deleted_at.isoformat()}
 
 
 @router.patch("/{item_id}", response_model=ClothingItemResponse)
@@ -144,6 +150,7 @@ def restore_clothing(item_id: int, current_user=Depends(get_current_user), db: S
         raise HTTPException(status_code=404, detail="Clothing item not found")
 
     item.is_deleted = False
+    item.deleted_at = None
 
     db.commit()
 
@@ -161,6 +168,9 @@ def permanent_delete_clothing(item_id: int, current_user=Depends(get_current_use
     if not item:
         raise HTTPException(status_code=404, detail="Clothing item not found")
 
+    # Delete associated photo files from disk
+    _delete_item_files(item)
+
     db.query(CapsuleItem).filter(CapsuleItem.clothing_item_id == item_id).delete()
 
     db.query(OutfitItem).filter(OutfitItem.clothing_item_id == item_id).delete()
@@ -170,3 +180,24 @@ def permanent_delete_clothing(item_id: int, current_user=Depends(get_current_use
     db.commit()
 
     return {"message": "Clothing item permanently deleted"}
+
+
+def _delete_item_files(item: ClothingItem):
+    """Delete the image files associated with a clothing item from disk."""
+    upload_dir = Path("uploads")
+
+    if item.image_url:
+        image_path = upload_dir / item.image_url.lstrip("/")
+        _safe_unlink(image_path)
+
+    if item.original_image_url:
+        original_path = upload_dir / item.original_image_url.lstrip("/")
+        _safe_unlink(original_path)
+
+
+def _safe_unlink(path: Path):
+    """Remove a file if it exists, silently ignore if it doesn't."""
+    try:
+        path.unlink(missing_ok=True)
+    except Exception as e:
+        print(f"Warning: could not delete file {path}: {e}")
