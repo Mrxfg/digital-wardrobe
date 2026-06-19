@@ -6,7 +6,7 @@ This guide will help you set up and configure the Telegram Bot for Digital Wardr
 
 ## ✅ Current Bot Configuration
 
-**Bot Token:** `8930175741:AAFn20YgCQWSDh-avVP10H2gQrJml8-9m-I`
+**Bot Token:** You can take from BotFather
 
 **Available Commands:**
 - `/start` - Welcome message and introduction
