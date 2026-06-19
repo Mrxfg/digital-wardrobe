@@ -1,63 +1,4 @@
 # Digital Wardrobe API Documentation
-
-## 📋 Table of Contents
-- [Configuration](#configuration)
-- [Authentication](#authentication)
-- [Clothes Endpoints](#clothes-endpoints)
-- [Outfits Endpoints](#outfits-endpoints)
-- [Capsules Endpoints](#capsules-endpoints)
-- [Wear Records Endpoints](#wear-records-endpoints)
-- [Upload Endpoint](#upload-endpoint)
-- [Health Check](#health-check)
-- [Error Responses](#error-responses)
-
----
-
-## 🔧 Configuration
-
-### Database Configuration
-
-**PostgreSQL Connection:**
-```
-DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/digital_wardrobe
-```
-
-**Connection Details:**
-- **Host:** `localhost` (or `186.246.5.37` for external access)
-- **Port:** `5432`
-- **Database:** `digital_wardrobe`
-- **Username:** `postgres`
-- **Password:** `postgres123`
-
-### Authentication & Security
-
-**JWT Configuration:**
-```env
-SECRET_KEY=8f2c9a1e7d4b6f3a9c8e5d2b7f1a4c6e
-ALGORITHM=HS256
-```
-
-### Telegram Bot
-
-**Bot Token:**
-```env
-BOT_TOKEN=8930175741:AAFn20YgCQWSDh-avVP10H2gQrJml8-9m-I
-```
-
-### API Configuration
-
-**Backend API:**
-```env
-API_HOST=186.246.5.37
-API_PORT=8000
-API_BASE_URL=http://186.246.5.37:8000
-```
-
-**API Documentation:**
-- **Interactive Docs:** `http://186.246.5.37:8000/docs`
-- **ReDoc:** `http://186.246.5.37:8000/redoc`
-- **Health Check:** `http://186.246.5.37:8000/health`
-
 ---
 
 ## 🔐 Authentication
@@ -1060,7 +1001,6 @@ curl -X POST "http://186.246.5.37:8000/upload/image" \
 ## 🚀 Deployment Information
 
 **Production Server:**
-- **SSH:** `root@186.246.5.37`
 - **Location:** `/opt/digital-wardrobe`
 - **Branch:** `feature/image-upload`
 
@@ -1084,29 +1024,6 @@ docker compose down
 ```
 
 ---
-
-## 📝 Environment Variables
-
-**Production `.env` file:**
-```env
-# Database
-DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/digital_wardrobe
-DB_PASSWORD=postgres123
-
-# JWT Authentication
-SECRET_KEY=8f2c9a1e7d4b6f3a9c8e5d2b7f1a4c6e
-ALGORITHM=HS256
-
-# Telegram Bot
-BOT_TOKEN=8930175741:AAFn20YgCQWSDh-avVP10H2gQrJml8-9m-I
-
-# Server Configuration
-HOST=0.0.0.0
-PORT=8000
-```
-
----
-
 ## 📦 Dependencies
 
 **Core:**
