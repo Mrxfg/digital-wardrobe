@@ -1,71 +1,48 @@
-from io import BytesIO
 from pathlib import Path
-from uuid import uuid4
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from PIL import Image
-from pillow_heif import register_heif_opener
-from rembg import remove
 
-register_heif_opener()
-
-UPLOAD_DIR = Path("uploads")
-ORIGINAL_DIR = UPLOAD_DIR / "original"
-PROCESSED_DIR = UPLOAD_DIR / "processed"
-
-ORIGINAL_DIR.mkdir(parents=True, exist_ok=True)
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+from app.services.upload import (
+    save_original,
+    save_processed,
+    validate_file,
+    validate_image,
+)
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
 
-MAX_FILE_SIZE = 10 * 1024 * 1024
-
-ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]
-
-
 @router.post("/")
 async def upload_image(file: UploadFile = File(...)):
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail=("Only JPG, PNG, WEBP and HEIC images are allowed"))
-
+    content_type = file.content_type or "application/octet-stream"
     content = await file.read()
 
-    if len(content) == 0:
-        raise HTTPException(status_code=400, detail="File is empty")
-
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="Maximum file size is 10 MB")
-
+    # Validate file
     try:
-        Image.open(BytesIO(content)).verify()
+        validate_file(content_type, content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
-
-    original_extension = Path(file.filename).suffix.lower()
-
-    original_filename = f"{uuid4()}{original_extension}"
-
-    original_filepath = ORIGINAL_DIR / original_filename
-
-    with open(original_filepath, "wb") as buffer:
-        buffer.write(content)
-
+    # Validate image integrity
     try:
-        processed_content = remove(content)
+        validate_image(content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
+    # Save compressed original
+    original_extension = Path(file.filename).suffix.lower() if file.filename else ".jpg"
+    try:
+        _, original_url = save_original(content, original_extension)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save original image: {e}")
 
-    processed_filename = f"{uuid4()}.png"
-
-    processed_filepath = PROCESSED_DIR / processed_filename
-
-    with open(processed_filepath, "wb") as buffer:
-        buffer.write(processed_content)
+    # Remove background and save processed
+    try:
+        _, image_url = save_processed(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Background removal failed: {e}")
 
     return {
-        "image_url": f"/uploads/processed/{processed_filename}",
-        "original_image_url": f"/uploads/original/{original_filename}",
+        "image_url": image_url,
+        "original_image_url": original_url,
     }
