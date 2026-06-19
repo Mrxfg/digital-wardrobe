@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: wardrobe_db
+    environment:
+      POSTGRES_DB: digital_wardrobe
+      POSTGRES_USER: wardrobe_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wardrobe_user -d digital_wardrobe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: wardrobe_backend
+    environment:
+      DATABASE_URL: postgresql://wardrobe_user:${DB_PASSWORD}@db:5432/digital_wardrobe
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: HS256
+      BOT_TOKEN: ${BOT_TOKEN}
+      HOST: 0.0.0.0
+      PORT: 8000
+    volumes:
+      - ./backend/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
