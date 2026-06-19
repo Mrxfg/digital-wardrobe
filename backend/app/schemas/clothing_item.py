@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import BaseModel
 
 
@@ -33,7 +31,6 @@ class ClothingItemResponse(BaseModel):
     material: str
     image_url: str | None = None
     original_image_url: str | None = None
-    deleted_at: datetime | None = None
 
     class Config:
         from_attributes = True
