@@ -110,7 +110,6 @@ def telegram_webapp_login(payload: TelegramInitData, db: Session = Depends(get_d
     telegram_id = str(user_data.get("id"))
     username = user_data.get("username")
     first_name = user_data.get("first_name")
-    last_name = user_data.get("last_name")
     photo_url = user_data.get("photo_url")
 
     # Find or create user
