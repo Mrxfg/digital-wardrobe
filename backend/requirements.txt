@@ -9,4 +9,3 @@ python-multipart
 Pillow
 pillow-heif
 rembg[cpu]
-httpx
