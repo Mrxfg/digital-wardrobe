@@ -8,6 +8,10 @@ class TelegramLogin(BaseModel):
     avatar_url: str | None = None
 
 
+class TelegramInitData(BaseModel):
+    init_data: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
