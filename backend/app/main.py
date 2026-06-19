@@ -6,8 +6,10 @@ from app.database import Base, engine
 from app.models.capsule import Capsule  # noqa: F401
 from app.models.capsule_item import CapsuleItem  # noqa: F401
 from app.models.clothing_item import ClothingItem  # noqa: F401
+from app.models.item_tag import ItemTag  # noqa: F401
 from app.models.outfit import Outfit  # noqa: F401
 from app.models.outfit_item import OutfitItem  # noqa: F401
+from app.models.tag import Tag  # noqa: F401
 from app.models.users import User  # noqa: F401
 from app.models.wear_record import WearRecord  # noqa: F401
 from app.routers.auth import router as auth_router
@@ -16,6 +18,7 @@ from app.routers.capsules import router as capsules_router
 from app.routers.clothes import router as clothes_router
 from app.routers.items import router as items_router
 from app.routers.outfits import router as outfits_router
+from app.routers.tags import router as tags_router
 from app.routers.upload import router as upload_router
 from app.routers.wear_records import router as wear_records_router
 
@@ -35,6 +38,7 @@ app.add_middleware(
 app.include_router(clothes_router)
 app.include_router(items_router)
 app.include_router(outfits_router)
+app.include_router(tags_router)
 app.include_router(wear_records_router)
 app.include_router(auth_router)
 app.include_router(capsules_router)

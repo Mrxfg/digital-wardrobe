@@ -1,4 +1,8 @@
+from datetime import datetime
+
 from pydantic import BaseModel
+
+from app.schemas.tag import TagResponse
 
 
 class ClothingItemCreate(BaseModel):
@@ -31,6 +35,8 @@ class ClothingItemResponse(BaseModel):
     material: str
     image_url: str | None = None
     original_image_url: str | None = None
+    deleted_at: datetime | None = None
+    tags: list[TagResponse] = []
 
     class Config:
         from_attributes = True
