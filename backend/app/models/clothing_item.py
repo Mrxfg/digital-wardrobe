@@ -33,3 +33,5 @@ class ClothingItem(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User")
+
+    tags = relationship("Tag", secondary="item_tags", back_populates="clothing_items")
