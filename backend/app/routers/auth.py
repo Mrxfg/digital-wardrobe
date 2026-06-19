@@ -136,7 +136,7 @@ def telegram_webapp_login(payload: TelegramInitData, db: Session = Depends(get_d
     # Create JWT token
     token = create_access_token(user.id)
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer"}  # nosec B105
 
 
 @router.get("/me")
