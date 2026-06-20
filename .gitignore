@@ -225,3 +225,8 @@ uploads/original/*
 !uploads/original/.gitkeep
 uploads/processed/*
 !uploads/processed/.gitkeep
+
+# Frontend (Node.js / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.claude/
