@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -8,6 +9,8 @@ from app.services.upload import (
     validate_file,
     validate_image,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
@@ -40,7 +43,13 @@ async def upload_image(file: UploadFile = File(...)):
     try:
         _, image_url = save_processed(content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Background removal failed: {e}")
+        logger.error(f"Background removal failed: {e}")
+        # Fallback: return original photo when Rembg fails
+        return {
+            "image_url": original_url,
+            "original_image_url": original_url,
+            "notification": "Background removal unavailable. Item saved with original photo.",
+        }
 
     return {
         "image_url": image_url,
