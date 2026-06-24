@@ -226,9 +226,6 @@ uploads/original/*
 uploads/processed/*
 !uploads/processed/.gitkeep
 
-# SQLite test database
-*.db
-
 # Frontend (Node.js / Vite)
 frontend/node_modules/
 frontend/dist/
