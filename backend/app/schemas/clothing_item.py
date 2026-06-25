@@ -36,6 +36,7 @@ class ClothingItemResponse(BaseModel):
     image_url: str | None = None
     original_image_url: str | None = None
     deleted_at: datetime | None = None
+    days_remaining: int | None = None
     tags: list[TagResponse] = []
 
     class Config:

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -42,11 +43,33 @@ def get_clothes(
     return query.all()
 
 
+RETENTION_DAYS = 14
+
+
+def _compute_days_remaining(deleted_at: datetime | None) -> int | None:
+    """Return days remaining before permanent deletion (14-day retention).
+
+    Returns ``None`` when the item was never deleted, and ``0`` when
+    the retention period has already expired.
+    """
+    if deleted_at is None:
+        return None
+    # Normalise: SQLite returns a naive datetime (no tz), while PostgreSQL
+    # with DateTime(timezone=True) returns an aware one.
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    ref = deleted_at.replace(tzinfo=None) if deleted_at.tzinfo else deleted_at
+    elapsed = (now - ref).days
+    return max(0, RETENTION_DAYS - elapsed)
+
+
 @router.get("/trash", response_model=list[ClothingItemResponse])
 def get_trash(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
+    items = (
         db.query(ClothingItem).filter(ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(True)).all()
     )
+    for item in items:
+        item.days_remaining = _compute_days_remaining(item.deleted_at)
+    return items
 
 
 @router.get("/{item_id}", response_model=ClothingItemResponse)
@@ -79,6 +102,7 @@ def delete_clothing(item_id: int, current_user=Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Clothing item not found")
 
     item.is_deleted = True
+    item.deleted_at = func.now()
     db.commit()
 
     return {"message": "Clothing item deleted successfully"}
@@ -144,7 +168,7 @@ def restore_clothing(item_id: int, current_user=Depends(get_current_user), db: S
         raise HTTPException(status_code=404, detail="Clothing item not found")
 
     item.is_deleted = False
-
+    item.deleted_at = None
     db.commit()
 
     return {"message": "Clothing item restored successfully"}

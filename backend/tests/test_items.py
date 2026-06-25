@@ -5,6 +5,8 @@ Covers CRUD operations, field validation, background removal endpoint,
 and the remove_background parameter on item creation.
 """
 
+from datetime import datetime, timedelta, timezone
+
 from io import BytesIO
 from unittest.mock import patch
 
@@ -207,3 +209,138 @@ class TestRemoveBackgroundEndpoint:
             )
 
         assert response.status_code == 500
+
+
+class TestTrashDaysRemaining:
+    """PBI #172: days_remaining in trash basket."""
+
+    def _create_and_delete_item(self, client) -> int:
+        """Helper: create an item, soft-delete it, return its id."""
+        resp = client.post(
+            "/clothes/",
+            json={
+                "name": "Trash Test",
+                "category": "top",
+                "color": "red",
+                "season": "summer",
+                "material": "cotton",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        item_id = resp.json()["id"]
+
+        delete_resp = client.delete(f"/clothes/{item_id}")
+        assert delete_resp.status_code == 200
+        return item_id
+
+    def test_days_remaining_in_trash_response(self, client):
+        """Scenario 1: trash response includes days_remaining as int."""
+        self._create_and_delete_item(client)
+
+        resp = client.get("/clothes/trash")
+        assert resp.status_code == 200
+        items = resp.json()
+        assert len(items) > 0
+        assert "days_remaining" in items[0]
+        assert isinstance(items[0]["days_remaining"], int)
+
+    def test_days_remaining_freshly_deleted_returns_14(self, client):
+        """Scenario 3: item deleted just now → days_remaining = 14."""
+        self._create_and_delete_item(client)
+
+        resp = client.get("/clothes/trash")
+        items = resp.json()
+        # Freshly deleted item should have days_remaining = 14
+        assert items[0]["days_remaining"] == 14
+
+    def test_days_remaining_decreases_over_time(self, client):
+        """Scenario 2: manually set deleted_at 5 days ago → days_remaining = 9."""
+        from app.database import get_db
+        from app.models.clothing_item import ClothingItem
+
+        # Create and delete via API first
+        item_id = self._create_and_delete_item(client)
+
+        # Manually adjust deleted_at to 5 days ago in the DB
+        db = next(get_db())
+        try:
+            item = db.query(ClothingItem).filter(ClothingItem.id == item_id).first()
+            item.deleted_at = datetime.now(timezone.utc) - timedelta(days=5)
+            db.commit()
+        finally:
+            db.close()
+
+        resp = client.get("/clothes/trash")
+        items = resp.json()
+        assert items[0]["days_remaining"] == 9
+
+    def test_days_remaining_old_item_returns_0(self, client):
+        """Item in trash for 14+ days → days_remaining = 0."""
+        from app.database import get_db
+        from app.models.clothing_item import ClothingItem
+
+        item_id = self._create_and_delete_item(client)
+
+        db = next(get_db())
+        try:
+            item = db.query(ClothingItem).filter(ClothingItem.id == item_id).first()
+            item.deleted_at = datetime.now(timezone.utc) - timedelta(days=15)
+            db.commit()
+        finally:
+            db.close()
+
+        resp = client.get("/clothes/trash")
+        items = resp.json()
+        assert items[0]["days_remaining"] == 0
+
+    def test_days_remaining_is_none_for_active_items(self, client, sample_item_data):
+        """Active (non-deleted) items have days_remaining = None."""
+        resp = client.post("/clothes/", json=sample_item_data)
+        item_id = resp.json()["id"]
+
+        resp = client.get(f"/clothes/{item_id}")
+        data = resp.json()
+        assert data["days_remaining"] is None
+
+    @pytest.mark.parametrize("deleted_days_ago,expected", [(0, 14), (1, 13), (7, 7), (13, 1), (14, 0), (20, 0)])
+    def test_days_remaining_parametrized(self, client, deleted_days_ago, expected):
+        """Verify days_remaining = max(0, 14 - days_since_deleted)."""
+        from app.database import get_db
+        from app.models.clothing_item import ClothingItem
+
+        item_id = self._create_and_delete_item(client)
+
+        db = next(get_db())
+        try:
+            item = db.query(ClothingItem).filter(ClothingItem.id == item_id).first()
+            item.deleted_at = datetime.now(timezone.utc) - timedelta(days=deleted_days_ago)
+            db.commit()
+        finally:
+            db.close()
+
+        resp = client.get("/clothes/trash")
+        items = resp.json()
+        assert items[0]["days_remaining"] == expected, (
+            f"Expected {expected} days_remaining for deleted {deleted_days_ago} days ago, "
+            f"got {items[0]['days_remaining']}"
+        )
+
+    def test_restore_clears_deleted_at(self, client):
+        """Restoring an item clears deleted_at and sets days_remaining to None."""
+        item_id = self._create_and_delete_item(client)
+
+        # Verify it's in trash with days_remaining
+        trash_resp = client.get("/clothes/trash")
+        assert any(item["id"] == item_id for item in trash_resp.json())
+
+        # Restore
+        restore_resp = client.post(f"/clothes/{item_id}/restore")
+        assert restore_resp.status_code == 200
+
+        # Should no longer be in trash
+        trash_resp = client.get("/clothes/trash")
+        assert not any(item["id"] == item_id for item in trash_resp.json())
+
+        # Active item should have days_remaining = None
+        detail_resp = client.get(f"/clothes/{item_id}")
+        assert detail_resp.json()["days_remaining"] is None
