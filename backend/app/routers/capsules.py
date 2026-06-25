@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -35,11 +35,38 @@ def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Ses
     return capsule
 
 
-@router.post("/", response_model=CapsuleResponse)
+@router.post("/", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
 def create_capsule(capsule: CapsuleCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    new_capsule = Capsule(user_id=current_user["user_id"], name=capsule.name, season=capsule.season)
+    new_capsule = Capsule(
+        user_id=current_user["user_id"],
+        name=capsule.name,
+        description=capsule.description,
+        season=capsule.season,
+    )
 
     db.add(new_capsule)
+    db.flush()
+
+    # Add items if provided
+    if capsule.items:
+        if len(capsule.items) > 8:
+            raise HTTPException(status_code=400, detail="Capsule can contain maximum 8 items")
+
+        # Validate all items belong to user
+        items = (
+            db.query(ClothingItem)
+            .filter(
+                ClothingItem.id.in_(capsule.items),
+                ClothingItem.user_id == current_user["user_id"],
+                ClothingItem.is_deleted.is_(False),
+            )
+            .all()
+        )
+        found_ids = {item.id for item in items}
+        for item_id in capsule.items:
+            if item_id not in found_ids:
+                raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+            db.add(CapsuleItem(capsule_id=new_capsule.id, clothing_item_id=item_id))
 
     db.commit()
     db.refresh(new_capsule)

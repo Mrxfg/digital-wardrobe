@@ -14,9 +14,15 @@ class Capsule(Base):
 
     name = Column(String, nullable=False)
 
+    description = Column(String, nullable=True)
+
     season = Column(String, nullable=True)
 
     user = relationship("User")
+
+    capsule_items = relationship("CapsuleItem", backref="capsule_rel", cascade="all, delete-orphan")
+
+    items = relationship("ClothingItem", secondary="capsule_items", viewonly=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
