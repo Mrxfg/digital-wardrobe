@@ -1,4 +1,8 @@
+import io
+import logging
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -6,6 +10,8 @@ from app.dependencies.auth import get_current_user
 from app.models.clothing_item import ClothingItem
 from app.schemas.clothing_item import ClothingItemResponse
 from app.services.upload import save_original, save_processed, validate_file, validate_image
+
+logger = logging.getLogger(__name__)
 
 REQUIRED_FIELDS = ["name", "category", "color", "season", "material"]
 
@@ -20,10 +26,11 @@ async def create_item(
     season: str = Form(...),
     material: str = Form(...),
     photo: UploadFile = File(...),
+    remove_background: bool = Form(True),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Upload and process the photo
+    """Create a new clothing item with optional background removal."""
     content_type = photo.content_type or "application/octet-stream"
     content = await photo.read()
 
@@ -41,7 +48,13 @@ async def create_item(
 
     try:
         _, original_url = save_original(content, original_extension)
-        _, image_url = save_processed(content)
+
+        if remove_background:
+            _, image_url = save_processed(content)
+            logger.info("Background removed for item '%s'", name)
+        else:
+            image_url = original_url
+            logger.info("Background removal skipped for item '%s'", name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Photo processing failed: {e}")
 
@@ -62,3 +75,34 @@ async def create_item(
     db.refresh(item)
 
     return item
+
+
+@router.post("/remove-background")
+async def remove_background(file: UploadFile = File(...)):
+    """Remove background from an uploaded image and return the processed PNG."""
+    content_type = file.content_type or "application/octet-stream"
+    content = await file.read()
+
+    # Validate file type
+    try:
+        validate_file(content_type, content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Validate image integrity
+    try:
+        validate_image(content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Process — remove background
+    try:
+        processed_path, _ = save_processed(content)
+    except Exception as e:
+        logger.error("Background removal failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Background removal failed: {e}")
+
+    # Read processed PNG and return as image/png
+    png_bytes = processed_path.read_bytes()
+
+    return Response(content=png_bytes, media_type="image/png")
