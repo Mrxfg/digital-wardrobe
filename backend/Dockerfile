@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the Rembg model (u2net) so the first request is fast
+RUN python -c "from rembg.session_factory import new_session; new_session()"
+
 # Copy application code
 COPY . .
 
