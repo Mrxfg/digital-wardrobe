@@ -1,22 +1,29 @@
-## Description
-<!-- Provide a brief summary of the changes -->
+## Related Issue
+Closes #
 
-Closes #<!-- issue number -->
+## Summary of changes
+<Briefly describe what this PR changes>
 
-## Type of Change
-<!-- Tick the relevant option(s) -->
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Refactor / code improvement
-- [ ] CI / infrastructure
-- [ ] Documentation
+## Acceptance Criteria Verification
 
-## Checklist
-- [ ] My code follows the project's style guidelines (black, flake8)
-- [ ] I have added tests that prove my fix/feature works
-- [ ] All existing tests pass locally
-- [ ] CI pipeline passes
+- [ ] AC verified (all scenarios from the issue passed)
+
+## Testing performed
+
+- [ ] Tested locally
+- [ ] Ran smoke check
+- [ ] Verified links (Lychee)
+
+## Changelog
+<!-- Select EXACTLY ONE option -->
+- [ ] Added or updated a user-visible entry in CHANGELOG.md
+- [ ] Not applicable because the change is not user-visible
+
+## Reviewer checklist
+
+- [ ] Changes match the task
+- [ ] No secrets or large files
+- [ ] No direct pushes to main
+- [ ] Changelog option selected correctly above
 
 ## Screenshots (if applicable)
-
-## Additional Notes

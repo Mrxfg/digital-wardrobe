@@ -1,0 +1,95 @@
+name: Bug Report
+description: Report a bug or defect in the product
+title: "[Bug]: Short description"
+labels: ["bug", "pbi"]
+body:
+  - type: dropdown
+    id: work_status
+    attributes:
+      label: Work Status
+      description: "Use ONLY: To Do, Ready, In Progress, Review, Done"
+      options:
+        - To Do
+        - Ready
+        - In Progress
+        - Review
+        - Done
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: implementer
+    attributes:
+      label: Implementer (@username)
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: input
+    id: reviewer
+    attributes:
+      label: Reviewer (@username)
+      description: "MUST be a different person than the Implementer."
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description / Context
+      description: "A clear and concise description of what the bug is."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: "What you expected to happen."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: "What actually happened."
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: [e.g., Windows 11, macOS 14]
+        - Browser: [e.g., Chrome 120, Telegram Desktop 4.x]
+        - App Version: [e.g., MVP v0]
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria for the fix
+      description: "How do we verify the bug is fixed? Must be specific, observable, and testable."
+      placeholder: |
+        - [ ] Given [context], When [action], Then [expected behavior works correctly]
+        - [ ] The error no longer occurs
+        - [ ] Regression test added (if applicable)
+    validations:
+      required: true
