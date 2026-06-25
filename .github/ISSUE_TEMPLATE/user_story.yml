@@ -1,0 +1,108 @@
+name: User Story
+description: Creating a new user story
+title: "US-XX: Short title"
+labels: ["user-story", "pbi"]
+body:
+  - type: dropdown
+    id: requirement_status
+    attributes:
+      label: Requirement status
+      options:
+        - Active
+        - Removed
+        - Deferred
+    validations:
+      required: true
+
+  - type: dropdown
+    id: work_status
+    attributes:
+      label: Work Status
+      description: "Use only: To Do, Ready, In Progress, Review, Done"
+      options:
+        - To Do
+        - Ready
+        - In Progress
+        - Review
+        - Done
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: moscow
+    attributes:
+      label: MoSCoW priority
+      options:
+        - Must Have
+        - Should Have
+        - Could Have
+        - Won't Have
+    validations:
+      required: true
+
+  - type: input
+    id: persona
+    attributes:
+      label: Type of user / persona
+      placeholder: "As a [type of user / persona]"
+    validations:
+      required: true
+  - type: input
+    id: action
+    attributes:
+      label: Specific action
+      placeholder: "I want to [perform a specific action]"
+    validations:
+      required: true
+  - type: input
+    id: value
+    attributes:
+      label: Goal or value
+      placeholder: "so that [I achieve a specific goal or value]"
+    validations:
+      required: true
+
+  - type: input
+    id: implementer
+    attributes:
+      label: Implementer (@username)
+      description: "The person responsible for doing the work."
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: reviewer
+    attributes:
+      label: Reviewer (@username)
+      description: "A DIFFERENT person responsible for reviewing the work and confirming it is ready."
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes, constraints, assumptions, or open questions
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: "Must be specific, observable, and testable (Given/When/Then recommended)."
+      placeholder: |
+        - [ ] Given [context], When [action], Then [outcome]
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceability
+    attributes:
+      label: Traceability & Links
+      description: "Link related PBIs, parent Epic, or expected PR/MR here."
+      placeholder: "- Related to: #\n- Blocked by: #"
+    validations:
+      required: false

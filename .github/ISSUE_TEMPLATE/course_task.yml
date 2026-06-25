@@ -1,0 +1,97 @@
+name: Course Task / PBI
+description: Template for tracking PBIs or Course Tasks
+title: "[Task]: Short description"
+labels: ["task"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Task Category
+      options:
+        - PBI (Product Improvement)
+        - Course Task (Reporting/Admin)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task_type
+    attributes:
+      label: Work Type
+      options:
+        - Feature / User Story Support
+        - Bug Fix
+        - Technical Debt
+        - Documentation
+        - DevOps / CI/CD / Infrastructure
+        - Testing / QA
+        - Research / Spike
+        - Course Assignment / Packaging
+    validations:
+      required: true
+
+  - type: dropdown
+    id: work_status
+    attributes:
+      label: Work Status
+      description: "Use ONLY: To Do, Ready, In Progress, Review, Done"
+      options:
+        - To Do
+        - Ready
+        - In Progress
+        - Review
+        - Done
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Context & Description
+      placeholder: "What is the current situation? Why is this needed?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_outcome
+    attributes:
+      label: Expected Outcome
+      description: "Clear, specific description of what will be delivered or changed."
+    validations:
+      required: true
+
+  - type: input
+    id: implementer
+    attributes:
+      label: Implementer (@username)
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: reviewer
+    attributes:
+      label: Reviewer (@username)
+      description: "MUST be a different person than the Implementer."
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: "Must be specific, observable, and testable. Gherkin (Given/When/Then) is recommended."
+      placeholder: |
+        - [ ] Given [context], When [action], Then [outcome]
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceability
+    attributes:
+      label: Traceability & Links
+      description: "Link parent User Story, related PBIs, or expected PR/MR."
+      placeholder: "- Related to US-XX: #\n- PR/MR link will be added here:"
+    validations:
+      required: false
