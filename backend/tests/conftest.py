@@ -5,15 +5,18 @@ Overrides the production database with a temporary SQLite database and
 mocks the Telegram authentication dependency so that endpoints requiring
 a logged-in user work without an actual token.
 """
+
 import os
 from collections.abc import Generator
 
 # ---------------------------------------------------------------------------
-# Override DATABASE_URL BEFORE any application code is imported.
-# load_dotenv() respects an already-set environment variable so the .env
-# file with the PostgreSQL URL will NOT override this.
+# Override environment variables BEFORE any application code is imported.
+# load_dotenv() respects already-set variables so the .env file values
+# will NOT override these.
 # ---------------------------------------------------------------------------
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ["SECRET_KEY"] = "test-secret-key-for-tests"
+os.environ["ALGORITHM"] = "HS256"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -38,6 +41,7 @@ TestSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="function")
 def db_session() -> Generator[Session, None, None]:
     """Provide a clean database session for each test.
@@ -61,6 +65,7 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     *   ``get_db`` → yields the same session created by ``db_session``.
     *   ``get_current_user`` → returns a fixed test-user payload.
     """
+
     def _override_get_db() -> Generator[Session, None, None]:
         yield db_session
 

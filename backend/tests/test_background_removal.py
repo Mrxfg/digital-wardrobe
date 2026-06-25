@@ -11,6 +11,7 @@ Acceptance criteria
 - Fallback:  Rembg failure → original photo preserved + notification
 - QRT-002 contribution (already covered in tests/quality/)
 """
+
 import time
 from io import BytesIO
 from unittest.mock import patch
@@ -18,10 +19,10 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _valid_jpeg_bytes() -> bytes:
     """Return a tiny (1×1) valid JPEG for test payloads."""
@@ -33,6 +34,7 @@ def _valid_jpeg_bytes() -> bytes:
 # ---------------------------------------------------------------------------
 # Unit tests – Rembg wrapper (services/upload.py)
 # ---------------------------------------------------------------------------
+
 
 class TestRembgWrapper:
     """Unit tests for ``save_processed`` in ``app.services.upload``."""
@@ -70,6 +72,7 @@ class TestRembgWrapper:
         image_data = _valid_jpeg_bytes()
 
         with patch("app.services.upload.remove") as mock_remove:
+
             def _slow_remove(*args, **kwargs):
                 time.sleep(0.3)  # simulate moderate delay (CI-safe)
                 return image_data
@@ -87,6 +90,7 @@ class TestRembgWrapper:
 # ---------------------------------------------------------------------------
 # Integration tests – POST /upload/ endpoint
 # ---------------------------------------------------------------------------
+
 
 class TestBackgroundRemovalEndpoint:
     """Integration tests for the image upload endpoint."""
@@ -163,9 +167,7 @@ class TestBackgroundRemovalEndpoint:
             )
 
         # System should NOT crash — returns 200 with fallback data
-        assert response.status_code == 200, (
-            f"Expected 200 fallback, got {response.status_code}"
-        )
+        assert response.status_code == 200, f"Expected 200 fallback, got {response.status_code}"
         data = response.json()
 
         # Original photo is preserved / returned
@@ -173,15 +175,11 @@ class TestBackgroundRemovalEndpoint:
         assert data["original_image_url"].startswith("/uploads/original/")
 
         # Fallback: image_url equals original_url (no processed version)
-        assert data.get("image_url") == data["original_image_url"], (
-            "Expected image_url to fall back to original_image_url"
-        )
+        assert data.get("image_url") == data["original_image_url"], "Expected image_url to fall back to original_image_url"
 
         # User notification present
         notification = data.get("notification", "")
-        assert "Background removal unavailable" in notification, (
-            f"Missing or wrong notification: '{notification}'"
-        )
+        assert "Background removal unavailable" in notification, f"Missing or wrong notification: '{notification}'"
 
     def test_rembg_failure_fallback_structure(self, client):
         """Scenario 3: The fallback response has exactly the expected keys."""
@@ -204,6 +202,7 @@ class TestBackgroundRemovalEndpoint:
 # ---------------------------------------------------------------------------
 # Invalid-file handling (shared with QRT-002)
 # ---------------------------------------------------------------------------
+
 
 class TestBackgroundRemovalInvalidInput:
     """Edge cases: invalid files are rejected with proper status codes."""

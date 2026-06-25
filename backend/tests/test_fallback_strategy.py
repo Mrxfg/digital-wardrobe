@@ -12,6 +12,7 @@ Scenario 2: Corrupted image → fallback to original photo
 
 Scenario 3: Timeout handling → fallback to original + notification
 """
+
 import logging
 from io import BytesIO
 from unittest.mock import patch
@@ -73,9 +74,7 @@ class TestRembgFallback:
 
         assert response.status_code == 200
         notification = response.json().get("notification", "")
-        assert "Background removal unavailable" in notification, (
-            f"Missing notification: '{notification}'"
-        )
+        assert "Background removal unavailable" in notification, f"Missing notification: '{notification}'"
 
     def test_rembg_failure_fallback_to_original_url(self, client):
         """
@@ -115,10 +114,7 @@ class TestRembgFallback:
             )
 
         # Verify error was logged
-        assert any(
-            "Background removal failed" in record.message
-            for record in caplog.records
-        ), "Error was not logged"
+        assert any("Background removal failed" in record.message for record in caplog.records), "Error was not logged"
 
     def test_corrupted_image_fallback(self, client):
         """
@@ -165,9 +161,7 @@ class TestRembgFallback:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["image_url"] == data["original_image_url"], (
-            "Should fallback to original on timeout"
-        )
+        assert data["image_url"] == data["original_image_url"], "Should fallback to original on timeout"
         notification = data.get("notification", "")
         assert "Background removal unavailable" in notification
 
