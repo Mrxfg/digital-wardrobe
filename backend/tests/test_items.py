@@ -321,8 +321,7 @@ class TestTrashDaysRemaining:
         resp = client.get("/clothes/trash")
         items = resp.json()
         assert items[0]["days_remaining"] == expected, (
-            f"Expected {expected} days_remaining for deleted {deleted_days_ago} days ago, "
-            f"got {items[0]['days_remaining']}"
+            f"Expected {expected} days_remaining for deleted {deleted_days_ago} days ago, " f"got {items[0]['days_remaining']}"
         )
 
     def test_restore_clears_deleted_at(self, client):
