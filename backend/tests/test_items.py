@@ -4,6 +4,7 @@ Unit and integration tests for clothing items API.
 Covers CRUD operations and field validation for the /clothes/ endpoints.
 Paths are adapted to the actual project routing (/clothes/ instead of /api/items).
 """
+
 import pytest
 
 

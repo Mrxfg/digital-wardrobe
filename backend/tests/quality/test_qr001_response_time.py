@@ -4,6 +4,7 @@ Quality Requirement: All API endpoints must respond in < 3 seconds.
 
 This test verifies that critical endpoints meet the response time threshold.
 """
+
 import time
 
 import pytest
@@ -28,13 +29,9 @@ class TestQR001ResponseTime:
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         assert elapsed_time < QR001_THRESHOLD_SECONDS, (
-            f"QRT-001 FAILED: Response took {elapsed_time:.2f}s, "
-            f"threshold is {QR001_THRESHOLD_SECONDS}s"
+            f"QRT-001 FAILED: Response took {elapsed_time:.2f}s, " f"threshold is {QR001_THRESHOLD_SECONDS}s"
         )
-        print(
-            f"✓ QRT-001 PASSED: Response time "
-            f"{elapsed_time:.2f}s < {QR001_THRESHOLD_SECONDS}s"
-        )
+        print(f"✓ QRT-001 PASSED: Response time " f"{elapsed_time:.2f}s < {QR001_THRESHOLD_SECONDS}s")
 
     def test_health_endpoint_response_time(self, client):
         """QRT-001: Health endpoint must respond quickly."""

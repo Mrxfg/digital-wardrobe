@@ -5,6 +5,7 @@ Overrides the production database with a temporary SQLite database and
 mocks the Telegram authentication dependency so that endpoints requiring
 a logged-in user work without an actual token.
 """
+
 import os
 from collections.abc import Generator
 
@@ -40,6 +41,7 @@ TestSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="function")
 def db_session() -> Generator[Session, None, None]:
     """Provide a clean database session for each test.
@@ -63,6 +65,7 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     *   ``get_db`` → yields the same session created by ``db_session``.
     *   ``get_current_user`` → returns a fixed test-user payload.
     """
+
     def _override_get_db() -> Generator[Session, None, None]:
         yield db_session
 
