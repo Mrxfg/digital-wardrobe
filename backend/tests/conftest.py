@@ -9,11 +9,13 @@ import os
 from collections.abc import Generator
 
 # ---------------------------------------------------------------------------
-# Override DATABASE_URL BEFORE any application code is imported.
-# load_dotenv() respects an already-set environment variable so the .env
-# file with the PostgreSQL URL will NOT override this.
+# Override environment variables BEFORE any application code is imported.
+# load_dotenv() respects already-set variables so the .env file values
+# will NOT override these.
 # ---------------------------------------------------------------------------
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ["SECRET_KEY"] = "test-secret-key-for-tests"
+os.environ["ALGORITHM"] = "HS256"
 
 import pytest
 from fastapi.testclient import TestClient

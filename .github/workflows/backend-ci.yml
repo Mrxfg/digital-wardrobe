@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+defaults:
+  run:
+    working-directory: backend
+
 jobs:
   lint-and-test:
     name: Lint & Type Check
@@ -30,18 +34,18 @@ jobs:
     - name: Lint with flake8
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "Lint warnings found"
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Check code formatting with black
-      run: black --check . || echo "Formatting issues found"
+      run: black --check .
 
     - name: Compile all Python files
-      run: python -m compileall . || echo "Compile check completed"
+      run: python -m compileall .
 
     - name: Security check - Verify no hardcoded secrets
       run: |
-        ! grep -r "password\s*=\s*['\"]" . --include="*.py" || echo "Warning: Potential hardcoded password found"
-        ! grep -r "secret\s*=\s*['\"]" . --include="*.py" || echo "Warning: Potential hardcoded secret found"
+        ! grep -r "password\s*=\s*['\"]" . --include="*.py" >&2
+        ! grep -r "secret\s*=\s*['\"]" . --include="*.py" >&2
 
   build-check:
     name: Build
@@ -86,14 +90,14 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-only
         ALGORITHM: HS256
-      run: python -c "from app.main import app; print('✓ Application imports successfully')" || echo "Import check placeholder"
+      run: python -c "from app.main import app; print('✓ Application imports successfully')"
 
     - name: Check database models
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-only
         ALGORITHM: HS256
-      run: python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine); print('✓ Database models created successfully')" || echo "DB check placeholder"
+      run: python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine); print('✓ Database models created successfully')"
 
   test:
     name: Unit & Integration Tests
@@ -136,8 +140,7 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-only
         ALGORITHM: HS256
-      run: |
-        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term || echo "Tests placeholder"
+      run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
@@ -187,14 +190,14 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-only
         ALGORITHM: HS256
-      run: pytest tests/quality/ -v -k "qr001" || echo "QRT-001 placeholder"
+      run: pytest tests/quality/ -v -k "qr001"
 
     - name: Run QRT-002 (Fault Tolerance)
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-only
         ALGORITHM: HS256
-      run: pytest tests/quality/ -v -k "qr002" || echo "QRT-002 placeholder"
+      run: pytest tests/quality/ -v -k "qr002"
 
   security-scan:
     name: Additional QA Check - Dependency Vulnerability Scan

@@ -226,8 +226,19 @@ uploads/original/*
 uploads/processed/*
 !uploads/processed/.gitkeep
 
+# Backend upload directory (backend subdirectory)
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/original/
+!backend/uploads/processed/
+backend/uploads/original/*
+!backend/uploads/original/.gitkeep
+backend/uploads/processed/*
+!backend/uploads/processed/.gitkeep
+
 # SQLite test database
 *.db
+backend/*.db
 
 # Frontend (Node.js / Vite)
 frontend/node_modules/
