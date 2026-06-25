@@ -183,7 +183,7 @@ jobs:
       run: |
         pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install pytest httpx
+        pip install pytest pytest-cov httpx
 
     - name: Run QRT-001 (API Response Time)
       env:
