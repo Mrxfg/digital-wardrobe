@@ -4,6 +4,7 @@ Unit and integration tests for clothing items API.
 Covers CRUD operations, field validation, background removal endpoint,
 and the remove_background parameter on item creation.
 """
+
 from io import BytesIO
 from unittest.mock import patch
 
