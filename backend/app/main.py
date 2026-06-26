@@ -25,10 +25,15 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Digital Wardrobe API", version="1.0.0")
 
-# CORS configuration for Telegram Mini App
+# CORS configuration for Telegram Mini App and Netlify frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific Telegram origins
+    allow_origins=[
+        "https://grand-eclair-a7d256.netlify.app",
+        "https://web.telegram.org",
+        "https://t.me",
+        "*",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
