@@ -30,11 +30,7 @@ def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_use
 
 @router.get("/trash", response_model=list[OutfitResponse])
 def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
-        db.query(Outfit)
-        .filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
-        .all()
-    )
+    return db.query(Outfit).filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True)).all()
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)

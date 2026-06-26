@@ -30,11 +30,7 @@ def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_us
 
 @router.get("/trash", response_model=list[CapsuleResponse])
 def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
-        db.query(Capsule)
-        .filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
-        .all()
-    )
+    return db.query(Capsule).filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True)).all()
 
 
 @router.get("/{capsule_id}", response_model=CapsuleResponse)
