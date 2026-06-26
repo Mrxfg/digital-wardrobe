@@ -17,7 +17,10 @@ router = APIRouter(prefix="/capsules", tags=["Capsules"])
 
 @router.get("/", response_model=list[CapsuleResponse])
 def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    query = db.query(Capsule).filter(Capsule.user_id == current_user["user_id"])
+    query = db.query(Capsule).filter(
+        Capsule.user_id == current_user["user_id"],
+        Capsule.is_deleted.is_(False),
+    )
 
     if name:
         query = query.filter(Capsule.name.ilike(f"%{name}%"))
@@ -25,9 +28,18 @@ def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_us
     return query.all()
 
 
+@router.get("/trash", response_model=list[CapsuleResponse])
+def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(Capsule).filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True)).all()
+
+
 @router.get("/{capsule_id}", response_model=CapsuleResponse)
 def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
+    capsule = (
+        db.query(Capsule)
+        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(False))
+        .first()
+    )
 
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
@@ -96,7 +108,45 @@ def update_capsule(
 
 @router.delete("/{capsule_id}")
 def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
+    capsule = (
+        db.query(Capsule)
+        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(False))
+        .first()
+    )
+
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+
+    capsule.is_deleted = True
+    db.commit()
+
+    return {"message": "Capsule deleted successfully"}
+
+
+@router.post("/{capsule_id}/restore")
+def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    capsule = (
+        db.query(Capsule)
+        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .first()
+    )
+
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+
+    capsule.is_deleted = False
+    db.commit()
+
+    return {"message": "Capsule restored successfully"}
+
+
+@router.delete("/{capsule_id}/permanent")
+def permanent_delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    capsule = (
+        db.query(Capsule)
+        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .first()
+    )
 
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
@@ -104,7 +154,7 @@ def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: 
     db.delete(capsule)
     db.commit()
 
-    return {"message": "Capsule deleted successfully"}
+    return {"message": "Capsule permanently deleted"}
 
 
 @router.post("/{capsule_id}/items", response_model=CapsuleItemResponse)

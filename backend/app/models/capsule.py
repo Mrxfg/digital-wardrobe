@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -17,6 +17,8 @@ class Capsule(Base):
     description = Column(String, nullable=True)
 
     season = Column(String, nullable=True)
+
+    is_deleted = Column(Boolean, default=False)
 
     user = relationship("User")
 
