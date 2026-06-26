@@ -16,7 +16,6 @@ from app.routers.auth import router as auth_router
 from app.routers.bot import router as bot_router
 from app.routers.capsules import router as capsules_router
 from app.routers.clothes import router as clothes_router
-from app.routers.items import router as items_router
 from app.routers.outfits import router as outfits_router
 from app.routers.tags import router as tags_router
 from app.routers.upload import router as upload_router
@@ -36,7 +35,6 @@ app.add_middleware(
 )
 
 app.include_router(clothes_router)
-app.include_router(items_router)
 app.include_router(outfits_router)
 app.include_router(tags_router)
 app.include_router(wear_records_router)
