@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-
 class TestItemsAPI:
     """Integration tests for /clothes/ endpoints."""
 
@@ -73,6 +72,7 @@ class TestItemsValidation:
         for cat in valid_categories:
             assert cat in valid_categories
         assert "invalid_category" not in valid_categories
+<<<<<<< Updated upstream
 
 
 class TestTrashDaysRemaining:
