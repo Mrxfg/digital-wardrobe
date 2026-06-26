@@ -16,7 +16,6 @@ from app.routers.auth import router as auth_router
 from app.routers.bot import router as bot_router
 from app.routers.capsules import router as capsules_router
 from app.routers.clothes import router as clothes_router
-from app.routers.items import router as items_router
 from app.routers.outfits import router as outfits_router
 from app.routers.tags import router as tags_router
 from app.routers.upload import router as upload_router
@@ -26,17 +25,21 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Digital Wardrobe API", version="1.0.0")
 
-# CORS configuration for Telegram Mini App
+# CORS configuration for Telegram Mini App and Netlify frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific Telegram origins
+    allow_origins=[
+        "https://grand-eclair-a7d256.netlify.app",
+        "https://web.telegram.org",
+        "https://t.me",
+        "*",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(clothes_router)
-app.include_router(items_router)
 app.include_router(outfits_router)
 app.include_router(tags_router)
 app.include_router(wear_records_router)
