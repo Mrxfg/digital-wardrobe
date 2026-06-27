@@ -23,12 +23,10 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-        # Исправлен путь к файлу зависимостей для кэша
-        cache-dependency-path: backend/requirements.txt
 
     - name: Install tools
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install flake8 black
 
     - name: Lint with flake8
@@ -76,16 +74,9 @@ jobs:
       with:
         python-version: '3.12'
 
-    # Кэшируем ML-модели для rembg, чтобы тесты не зависали на скачивании!
-    - name: Cache Rembg Models
-      uses: actions/cache@v4
-      with:
-        path: ~/.u2net
-        key: rembg-models-v1
-
     - name: Install all dependencies
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pillow-heif onnxruntime rembg pytest pytest-cov httpx pip-audit
 
@@ -116,6 +107,7 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-only
         ALGORITHM: HS256
+        NUMBA_DISABLE_JIT: "1"
       run: pytest tests/ -v -s --cov=app --cov-report=xml --cov-report=term
 
     - name: Run QRT-001 (API Response Time)
