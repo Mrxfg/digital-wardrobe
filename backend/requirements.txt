@@ -10,3 +10,4 @@ pillow>=12.2.0
 rembg>=2.0.75
 requests>=2.33.0
 urllib3>=2.7.0
+pillow-heif==0.18.0
