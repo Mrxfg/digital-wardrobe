@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
-class TagCreate(BaseModel):
+class TagBase(BaseModel):
     name: str
 
 
-class TagResponse(BaseModel):
+class TagCreate(TagBase):
+    pass
+
+
+class TagResponse(TagBase):
     id: int
-    name: str
     created_at: datetime | None = None
 
     class Config:
         from_attributes = True
-
-
-class TagWithCount(TagResponse):
-    item_count: int
