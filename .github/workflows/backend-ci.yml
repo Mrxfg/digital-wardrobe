@@ -199,7 +199,7 @@ jobs:
         ALGORITHM: HS256
       run: pytest tests/quality/ -v -k "qr002"
 
-    security-scan:
+      security-scan:
     name: Additional QA Check - Dependency Vulnerability Scan
     runs-on: ubuntu-latest
 
@@ -217,4 +217,5 @@ jobs:
 
     - name: Additional QA: Code Security Scan (Bandit)
       run: |
-        
+        bandit -r backend/app -ll
+        echo "✓ Security scan completed successfully"
