@@ -217,3 +217,23 @@ jobs:
 
     - name: Check for security vulnerabilities
       run: safety check --file requirements.txt --continue-on-error || echo "Security vulnerabilities found - please review"
+
+  dead-code-check:
+    name: Additional QA Check - Dead Code Detection (Vulture)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install vulture
+      run: pip install vulture
+
+    - name: Run Vulture (Dead Code Detection)
+      working-directory: backend
+      run: vulture app --min-confidence=70
