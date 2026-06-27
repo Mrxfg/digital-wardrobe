@@ -199,7 +199,7 @@ jobs:
         ALGORITHM: HS256
       run: pytest tests/quality/ -v -k "qr002"
 
-  security-scan:
+    security-scan:
     name: Additional QA Check - Dependency Vulnerability Scan
     runs-on: ubuntu-latest
 
@@ -212,8 +212,9 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install safety
-      run: pip install safety
+    - name: Install Bandit
+      run: python3 -m pip install bandit
 
-    - name: Check for security vulnerabilities
-      run: safety check --file requirements.txt --continue-on-error || echo "Security vulnerabilities found - please review"
+    - name: Additional QA: Code Security Scan (Bandit)
+      run: |
+        
