@@ -22,6 +22,7 @@ class CapsuleResponse(BaseModel):
     name: str
     description: str | None = None
     season: str | None = None
+    is_deleted: bool = False
     items: list[ClothingItemResponse] = []
 
     class Config:

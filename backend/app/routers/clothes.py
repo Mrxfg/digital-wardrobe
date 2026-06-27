@@ -62,6 +62,26 @@ def _compute_days_remaining(deleted_at: datetime | None) -> int | None:
     return max(0, RETENTION_DAYS - elapsed)
 
 
+@router.get("/trash/{item_id}", response_model=ClothingItemResponse)
+def get_trash_item(item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get full info about a trashed clothing item."""
+    item = (
+        db.query(ClothingItem)
+        .filter(
+            ClothingItem.id == item_id,
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(True),
+        )
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Trashed item not found")
+
+    item.days_remaining = _compute_days_remaining(item.deleted_at)
+    return item
+
+
 @router.get("/trash", response_model=list[ClothingItemResponse])
 def get_trash(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     items = (

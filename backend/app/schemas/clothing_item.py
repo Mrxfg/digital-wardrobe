@@ -35,6 +35,7 @@ class ClothingItemResponse(BaseModel):
     material: str
     image_url: str | None = None
     original_image_url: str | None = None
+    is_deleted: bool = False
     deleted_at: datetime | None = None
     days_remaining: int | None = None
     tags: list[TagResponse] = []
