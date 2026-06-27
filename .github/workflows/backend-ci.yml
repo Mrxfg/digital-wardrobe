@@ -29,6 +29,7 @@ jobs:
       run: |
         pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pillow-heif onnxruntime rembg
         pip install flake8 black pytest pytest-cov httpx
 
     - name: Lint with flake8
@@ -81,6 +82,7 @@ jobs:
       run: |
         pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pillow-heif onnxruntime rembg
 
     - name: Create uploads directory
       run: mkdir -p uploads/original uploads/processed
@@ -133,6 +135,7 @@ jobs:
       run: |
         pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pillow-heif onnxruntime rembg
         pip install pytest pytest-cov httpx
 
     - name: Run tests with coverage
@@ -183,6 +186,7 @@ jobs:
       run: |
         pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pillow-heif onnxruntime rembg
         pip install pytest pytest-cov httpx
 
     - name: Run QRT-001 (API Response Time)
@@ -212,8 +216,10 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install safety
-      run: pip install safety
+    - name: Install pip-audit
+      run: python3 -m pip install pip-audit
 
-    - name: Check for security vulnerabilities
-      run: safety check --file requirements.txt --continue-on-error || echo "Security vulnerabilities found - please review"
+    - name: Additional QA: Dependency vulnerability scan
+      run: |
+        python3 -m pip_audit -r requirements.txt
+        echo "✓ No known vulnerabilities found"
