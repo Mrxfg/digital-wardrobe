@@ -21,3 +21,5 @@ class Outfit(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User")
+
+    items = relationship("ClothingItem", secondary="outfit_items", viewonly=True)
