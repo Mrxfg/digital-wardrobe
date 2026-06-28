@@ -1,7 +1,5 @@
 from pydantic import BaseModel
 
-from app.schemas.clothing_item import ClothingItemResponse
-
 
 class OutfitItemCreate(BaseModel):
     clothing_id: int
@@ -29,7 +27,7 @@ class OutfitItemWithClothingResponse(BaseModel):
     x: float
     y: float
     scale: float
-    clothing_item: ClothingItemResponse | None = None
+    image_url: str | None = None
 
     class Config:
         from_attributes = True

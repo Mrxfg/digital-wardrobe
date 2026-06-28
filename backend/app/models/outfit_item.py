@@ -24,3 +24,7 @@ class OutfitItem(Base):
     outfit = relationship("Outfit", back_populates="items")
 
     clothing_item = relationship("ClothingItem")
+
+    @property
+    def image_url(self):
+        return self.clothing_item.image_url if self.clothing_item else None
