@@ -25,7 +25,7 @@ def get_clothes(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(ClothingItem).filter(ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(False))
+    query = db.query(ClothingItem).filter(ClothingItem.user_id == current_user["user_id"])
 
     if name:
         query = query.filter(ClothingItem.name.ilike(f"%{name}%"))
@@ -40,7 +40,7 @@ def get_clothes(
         query = query.filter(func.lower(ClothingItem.season) == season.lower())
     if material:
         query = query.filter(func.lower(ClothingItem.material) == material.lower())
-    return query.all()
+    return query.order_by(ClothingItem.created_at.desc()).all()
 
 
 RETENTION_DAYS = 14

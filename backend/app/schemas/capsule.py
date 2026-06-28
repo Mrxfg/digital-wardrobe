@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from app.schemas.clothing_item import ClothingItemResponse
@@ -22,6 +24,8 @@ class CapsuleResponse(BaseModel):
     name: str
     description: str | None = None
     season: str | None = None
+    is_deleted: bool = False
+    created_at: datetime | None = None
     items: list[ClothingItemResponse] = []
 
     class Config:

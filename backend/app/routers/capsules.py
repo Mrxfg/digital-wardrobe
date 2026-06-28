@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
@@ -17,20 +17,26 @@ router = APIRouter(prefix="/capsules", tags=["Capsules"])
 
 @router.get("/", response_model=list[CapsuleResponse])
 def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    query = db.query(Capsule).filter(
-        Capsule.user_id == current_user["user_id"],
-        Capsule.is_deleted.is_(False),
+    query = (
+        db.query(Capsule)
+        .options(selectinload(Capsule.items))
+        .filter(Capsule.user_id == current_user["user_id"])
     )
 
     if name:
         query = query.filter(Capsule.name.ilike(f"%{name}%"))
 
-    return query.all()
+    return query.order_by(Capsule.created_at.desc()).all()
 
 
 @router.get("/trash", response_model=list[CapsuleResponse])
 def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Capsule).filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True)).all()
+    return (
+        db.query(Capsule)
+        .options(selectinload(Capsule.items))
+        .filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .all()
+    )
 
 
 @router.get("/{capsule_id}", response_model=CapsuleResponse)
