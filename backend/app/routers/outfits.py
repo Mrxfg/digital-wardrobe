@@ -52,6 +52,22 @@ def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), 
     new_outfit = Outfit(user_id=current_user["user_id"], name=outfit.name)
 
     db.add(new_outfit)
+    db.flush()
+
+    if outfit.items:
+        for clothing_item_id in outfit.items:
+            clothing = (
+                db.query(ClothingItem)
+                .filter(ClothingItem.id == clothing_item_id, ClothingItem.user_id == current_user["user_id"])
+                .first()
+            )
+            if not clothing:
+                db.rollback()
+                raise HTTPException(status_code=404, detail=f"Clothing item {clothing_item_id} not found")
+
+            outfit_item = OutfitItem(outfit_id=new_outfit.id, clothing_item_id=clothing_item_id)
+            db.add(outfit_item)
+
     db.commit()
     db.refresh(new_outfit)
 
