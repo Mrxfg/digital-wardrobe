@@ -23,13 +23,13 @@ def get_outfits(
     query = (
         db.query(Outfit)
         .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
-        .filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(False))
+        .filter(Outfit.user_id == current_user["user_id"])
     )
 
     if name:
         query = query.filter(Outfit.name.ilike(f"%{name}%"))
 
-    return query.all()
+    return query.order_by(Outfit.created_at.desc()).all()
 
 
 @router.get("/trash", response_model=list[OutfitResponse])
