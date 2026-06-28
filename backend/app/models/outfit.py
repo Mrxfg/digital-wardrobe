@@ -22,4 +22,4 @@ class Outfit(Base):
 
     user = relationship("User")
 
-    items = relationship("ClothingItem", secondary="outfit_items", viewonly=True)
+    items = relationship("OutfitItem", back_populates="outfit", cascade="all, delete-orphan")

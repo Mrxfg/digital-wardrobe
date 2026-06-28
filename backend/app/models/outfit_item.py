@@ -1,4 +1,5 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, Float, ForeignKey, Integer
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -10,6 +11,16 @@ class OutfitItem(Base):
 
     outfit_id = Column(Integer, ForeignKey("outfits.id", ondelete="CASCADE"), nullable=False)
 
-    clothing_item_id = Column(Integer, ForeignKey("clothing_items.id", ondelete="CASCADE"), nullable=False)
+    clothing_id = Column(
+        "clothing_item_id", Integer, ForeignKey("clothing_items.id", ondelete="CASCADE"), nullable=False
+    )
 
-    position = Column(String, nullable=False, default="other")
+    x = Column(Float, default=0.0)
+
+    y = Column(Float, default=0.0)
+
+    scale = Column(Float, default=1.0)
+
+    outfit = relationship("Outfit", back_populates="items")
+
+    clothing_item = relationship("ClothingItem")

@@ -187,7 +187,7 @@ def permanent_delete_clothing(item_id: int, current_user=Depends(get_current_use
 
     db.query(CapsuleItem).filter(CapsuleItem.clothing_item_id == item_id).delete()
 
-    db.query(OutfitItem).filter(OutfitItem.clothing_item_id == item_id).delete()
+    db.query(OutfitItem).filter(OutfitItem.clothing_id == item_id).delete()
 
     db.delete(item)
 
