@@ -38,11 +38,7 @@ def get_wear_records(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(WearRecord)
-        .options(selectinload(WearRecord.outfit))
-        .filter(WearRecord.user_id == current_user["user_id"])
-    )
+    query = db.query(WearRecord).options(selectinload(WearRecord.outfit)).filter(WearRecord.user_id == current_user["user_id"])
 
     if date_from:
         query = query.filter(WearRecord.worn_date >= date_from)
@@ -66,11 +62,7 @@ def update_wear_record(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    existing = (
-        db.query(WearRecord)
-        .filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"])
-        .first()
-    )
+    existing = db.query(WearRecord).filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"]).first()
 
     if not existing:
         raise HTTPException(status_code=404, detail="Wear record not found")
@@ -92,11 +84,7 @@ def update_wear_record(
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_wear_record(record_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    record = (
-        db.query(WearRecord)
-        .filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"])
-        .first()
-    )
+    record = db.query(WearRecord).filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"]).first()
 
     if not record:
         raise HTTPException(status_code=404, detail="Wear record not found")
@@ -136,10 +124,7 @@ def _record_to_response(record: WearRecord, db: Session) -> WearRecordResponse:
 
         outfit_data = WearRecordOutfit(
             name=record.outfit.name,
-            items=[
-                WearRecordOutfitItem(clothing_id=item.clothing_item_id, image_url=item.image_url)
-                for item in items
-            ],
+            items=[WearRecordOutfitItem(clothing_id=item.clothing_item_id, image_url=item.image_url) for item in items],
         )
 
     return WearRecordResponse(
