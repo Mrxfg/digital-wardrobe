@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from datetime import date
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
+from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
+from app.models.outfit_item import OutfitItem
 from app.models.wear_record import WearRecord
-from app.schemas.wear_record import WearRecordCreate, WearRecordResponse
+from app.schemas.wear_record import WearRecordCreate, WearRecordResponse, WearRecordUpdate
 
 router = APIRouter(prefix="/wear-records", tags=["Wear Records"])
 
 
-@router.post("/", response_model=WearRecordResponse)
+@router.post("/", response_model=WearRecordResponse, status_code=status.HTTP_201_CREATED)
 def create_wear_record(record: WearRecordCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     outfit = db.query(Outfit).filter(Outfit.id == record.outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
@@ -23,27 +28,75 @@ def create_wear_record(record: WearRecordCreate, current_user=Depends(get_curren
     db.commit()
     db.refresh(wear_record)
 
-    return wear_record
+    return _build_response(db, wear_record.id, current_user["user_id"])
 
 
 @router.get("/", response_model=list[WearRecordResponse])
-def get_wear_records(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(WearRecord).filter(WearRecord.user_id == current_user["user_id"]).all()
+def get_wear_records(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(WearRecord)
+        .options(selectinload(WearRecord.outfit))
+        .filter(WearRecord.user_id == current_user["user_id"])
+    )
+
+    if date_from:
+        query = query.filter(WearRecord.worn_date >= date_from)
+    if date_to:
+        query = query.filter(WearRecord.worn_date <= date_to)
+
+    records = query.order_by(WearRecord.worn_date.desc()).all()
+
+    return [_record_to_response(r, db) for r in records]
 
 
 @router.get("/{record_id}", response_model=WearRecordResponse)
 def get_wear_record(record_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    record = db.query(WearRecord).filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"]).first()
+    return _build_response(db, record_id, current_user["user_id"])
 
-    if not record:
+
+@router.put("/{record_id}", response_model=WearRecordResponse)
+def update_wear_record(
+    record_id: int,
+    record: WearRecordUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    existing = (
+        db.query(WearRecord)
+        .filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"])
+        .first()
+    )
+
+    if not existing:
         raise HTTPException(status_code=404, detail="Wear record not found")
 
-    return record
+    if record.outfit_id is not None:
+        outfit = db.query(Outfit).filter(Outfit.id == record.outfit_id, Outfit.user_id == current_user["user_id"]).first()
+        if not outfit:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        existing.outfit_id = record.outfit_id
+
+    if record.worn_date is not None:
+        existing.worn_date = record.worn_date
+
+    db.commit()
+    db.refresh(existing)
+
+    return _build_response(db, existing.id, current_user["user_id"])
 
 
-@router.delete("/{record_id}")
+@router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_wear_record(record_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    record = db.query(WearRecord).filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"]).first()
+    record = (
+        db.query(WearRecord)
+        .filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"])
+        .first()
+    )
 
     if not record:
         raise HTTPException(status_code=404, detail="Wear record not found")
@@ -51,4 +104,48 @@ def delete_wear_record(record_id: int, current_user=Depends(get_current_user), d
     db.delete(record)
     db.commit()
 
-    return {"message": "Wear record deleted successfully"}
+    return None
+
+
+def _build_response(db: Session, record_id: int, user_id: int) -> WearRecordResponse:
+    record = (
+        db.query(WearRecord)
+        .options(selectinload(WearRecord.outfit))
+        .filter(WearRecord.id == record_id, WearRecord.user_id == user_id)
+        .first()
+    )
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Wear record not found")
+
+    return _record_to_response(record, db)
+
+
+def _record_to_response(record: WearRecord, db: Session) -> WearRecordResponse:
+    from app.schemas.wear_record import WearRecordOutfit, WearRecordOutfitItem
+
+    outfit_data = None
+    if record.outfit:
+        items = (
+            db.query(OutfitItem)
+            .join(ClothingItem, OutfitItem.clothing_item_id == ClothingItem.id)
+            .filter(OutfitItem.outfit_id == record.outfit.id)
+            .with_entities(OutfitItem.clothing_item_id, ClothingItem.image_url)
+            .all()
+        )
+
+        outfit_data = WearRecordOutfit(
+            name=record.outfit.name,
+            items=[
+                WearRecordOutfitItem(clothing_id=item.clothing_item_id, image_url=item.image_url)
+                for item in items
+            ],
+        )
+
+    return WearRecordResponse(
+        id=record.id,
+        user_id=record.user_id,
+        outfit_id=record.outfit_id,
+        worn_date=record.worn_date,
+        outfit=outfit_data,
+    )
