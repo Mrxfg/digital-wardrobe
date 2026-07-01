@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.users import User
-from app.schemas.weather import LocationUpdate, LocationResponse, WeatherResponse
+from app.schemas.weather import LocationResponse, LocationUpdate, WeatherResponse
 from app.services.weather import fetch_weather, get_city_name
 
 router = APIRouter(prefix="/weather", tags=["Weather"])
