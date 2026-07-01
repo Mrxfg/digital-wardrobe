@@ -7,6 +7,7 @@ from app.schemas.outfit_item import OutfitItemCreate
 
 class OutfitCreate(BaseModel):
     name: str
+    items: list[OutfitItemCreate] = []
 
 
 class OutfitUpdate(BaseModel):
