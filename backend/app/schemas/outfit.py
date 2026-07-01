@@ -1,4 +1,8 @@
+from typing import Optional
+
 from pydantic import BaseModel
+
+from app.schemas.outfit_item import OutfitItemCreate
 
 
 class OutfitCreate(BaseModel):
@@ -6,7 +10,8 @@ class OutfitCreate(BaseModel):
 
 
 class OutfitUpdate(BaseModel):
-    name: str | None = None
+    name: Optional[str] = None
+    items: Optional[list[OutfitItemCreate]] = None
 
 
 class OutfitResponse(BaseModel):

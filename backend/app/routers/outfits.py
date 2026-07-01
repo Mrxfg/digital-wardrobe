@@ -1,7 +1,7 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
@@ -47,7 +47,7 @@ def get_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Sessi
     return outfit
 
 
-@router.post("/", response_model=OutfitResponse)
+@router.post("/", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
 def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     new_outfit = Outfit(user_id=current_user["user_id"], name=outfit.name)
 
@@ -67,6 +67,29 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
 
     update_data = outfit.model_dump(exclude_unset=True)
 
+    if "items" in update_data:
+        items_data = update_data.pop("items")
+
+        db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id).delete()
+
+        for item_data in items_data:
+            clothing = (
+                db.query(ClothingItem)
+                .filter(ClothingItem.id == item_data["clothing_item_id"], ClothingItem.user_id == current_user["user_id"])
+                .first()
+            )
+            if not clothing:
+                raise HTTPException(status_code=404, detail=f"Clothing item {item_data['clothing_item_id']} not found")
+            db.add(
+                OutfitItem(
+                    outfit_id=outfit_id,
+                    clothing_item_id=item_data["clothing_item_id"],
+                    x=item_data.get("x", 0.0),
+                    y=item_data.get("y", 0.0),
+                    scale=item_data.get("scale", 1.0),
+                )
+            )
+
     for key, value in update_data.items():
         setattr(existing, key, value)
 
@@ -76,7 +99,7 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
     return existing
 
 
-@router.delete("/{outfit_id}")
+@router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     outfit = (
         db.query(Outfit)
@@ -90,7 +113,7 @@ def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Se
     outfit.is_deleted = True
     db.commit()
 
-    return {"message": "Outfit deleted successfully"}
+    return None
 
 
 @router.post("/{outfit_id}/restore")
@@ -127,7 +150,7 @@ def permanent_delete_outfit(outfit_id: int, current_user=Depends(get_current_use
     return {"message": "Outfit permanently deleted"}
 
 
-@router.post("/{outfit_id}/items", response_model=OutfitItemResponse)
+@router.post("/{outfit_id}/items", response_model=OutfitItemResponse, status_code=status.HTTP_201_CREATED)
 def add_item_to_outfit(
     outfit_id: int, item: OutfitItemCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -144,6 +167,7 @@ def add_item_to_outfit(
 
     if not clothing:
         raise HTTPException(status_code=404, detail="Clothing item not found")
+
     existing_item = (
         db.query(OutfitItem)
         .filter(OutfitItem.outfit_id == outfit_id, OutfitItem.clothing_item_id == item.clothing_item_id)
@@ -153,7 +177,13 @@ def add_item_to_outfit(
     if existing_item:
         raise HTTPException(status_code=400, detail="Item already exists in outfit")
 
-    outfit_item = OutfitItem(outfit_id=outfit_id, clothing_item_id=item.clothing_item_id)
+    outfit_item = OutfitItem(
+        outfit_id=outfit_id,
+        clothing_item_id=item.clothing_item_id,
+        x=item.x,
+        y=item.y,
+        scale=item.scale,
+    )
 
     db.add(outfit_item)
     db.commit()
@@ -162,7 +192,7 @@ def add_item_to_outfit(
     return outfit_item
 
 
-@router.get("/{outfit_id}/items", response_model=list[ClothingItemResponse])
+@router.get("/{outfit_id}/items", response_model=list[OutfitItemResponse])
 def get_outfit_items(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     outfit = db.query(Outfit).filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
@@ -170,16 +200,13 @@ def get_outfit_items(outfit_id: int, current_user=Depends(get_current_user), db:
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     items = (
-        db.query(ClothingItem)
-        .join(OutfitItem, ClothingItem.id == OutfitItem.clothing_item_id)
-        .filter(OutfitItem.outfit_id == outfit_id, ClothingItem.is_deleted.is_(False))
-        .all()
+        db.query(OutfitItem).options(selectinload(OutfitItem.clothing_item)).filter(OutfitItem.outfit_id == outfit_id).all()
     )
 
     return items
 
 
-@router.delete("/{outfit_id}/items/{item_id}")
+@router.delete("/{outfit_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_item_from_outfit(
     outfit_id: int, item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -198,4 +225,4 @@ def remove_item_from_outfit(
     db.delete(outfit_item)
     db.commit()
 
-    return {"message": "Item removed from outfit"}
+    return None
