@@ -77,7 +77,7 @@ async def save_location(
 
     Expects ``{"latitude": 59.93, "longitude": 30.36}``.
     Latitude must be in [-90, 90], longitude in [-180, 180].
-    City name is auto-resolved from coordinates via reverse geocoding.
+    If ``city`` is provided, it's saved as-is; otherwise resolved from coordinates.
     """
     user = db.query(User).filter(User.id == current_user["user_id"]).first()
 
@@ -86,7 +86,7 @@ async def save_location(
 
     user.latitude = location.latitude
     user.longitude = location.longitude
-    user.city = await get_city_name(location.latitude, location.longitude)
+    user.city = location.city or await get_city_name(location.latitude, location.longitude)
     db.commit()
     db.refresh(user)
 
