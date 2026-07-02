@@ -159,6 +159,23 @@ class TestSaveLocation:
         user = db_session.query(User).filter(User.id == 1).first()
         assert user.city == "Санкт-Петербург"
 
+    def test_save_with_explicit_city(self, client, db_session):
+        """City provided in POST → saved as-is, Nominatim not called."""
+        _create_user(db_session)
+
+        resp = client.post(
+            "/weather/location",
+            json={"latitude": 55.75, "longitude": 37.62, "city": "Москва"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["latitude"] == 55.75
+        assert data["longitude"] == 37.62
+        assert data["city"] == "Москва"
+
+        user = db_session.query(User).filter(User.id == 1).first()
+        assert user.city == "Москва"
+
     # --- Validation: out-of-range ---
 
     def test_save_latitude_above_90(self, client):
