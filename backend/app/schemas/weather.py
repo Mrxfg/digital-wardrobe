@@ -9,6 +9,7 @@ class LocationUpdate(BaseModel):
 class LocationResponse(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
+    city: str | None = None
 
 
 class WeatherResponse(BaseModel):
