@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.schemas.clothing_item import ClothingItemResponse
+
 
 class CapsuleCreate(BaseModel):
     name: str
@@ -56,7 +58,7 @@ class CapsuleDetailResponse(BaseModel):
     season: Optional[str] = None
     is_deleted: bool = False
     created_at: Optional[datetime] = None
-    items: list[int] = []
+    items: list[ClothingItemResponse] = []
     outfits: list[CapsuleOutfit] = []
 
     class Config:

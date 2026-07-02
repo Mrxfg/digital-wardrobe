@@ -95,10 +95,9 @@ def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Ses
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
 
-    # Items as list of IDs
+    # Find outfits that use items from this capsule
     item_ids = [item.id for item in capsule.items]
 
-    # Find outfits that use items from this capsule
     outfits_query = (
         db.query(Outfit)
         .join(OutfitItem)
@@ -141,7 +140,7 @@ def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Ses
         season=capsule.season,
         is_deleted=capsule.is_deleted,
         created_at=capsule.created_at,
-        items=item_ids,
+        items=capsule.items,
         outfits=outfits_data,
     )
 
