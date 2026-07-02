@@ -58,13 +58,17 @@ def get_location(current_user=Depends(get_current_user), db: Session = Depends(g
     user = db.query(User).filter(User.id == current_user["user_id"]).first()
 
     if not user:
-        return LocationResponse(latitude=None, longitude=None)
+        return LocationResponse(latitude=None, longitude=None, city=None)
 
-    return LocationResponse(latitude=user.latitude, longitude=user.longitude)
+    return LocationResponse(
+        latitude=user.latitude,
+        longitude=user.longitude,
+        city=user.city,
+    )
 
 
 @router.post("/location", response_model=LocationResponse, status_code=status.HTTP_200_OK)
-def save_location(
+async def save_location(
     location: LocationUpdate,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -73,6 +77,7 @@ def save_location(
 
     Expects ``{"latitude": 59.93, "longitude": 30.36}``.
     Latitude must be in [-90, 90], longitude in [-180, 180].
+    City name is auto-resolved from coordinates via reverse geocoding.
     """
     user = db.query(User).filter(User.id == current_user["user_id"]).first()
 
@@ -81,7 +86,8 @@ def save_location(
 
     user.latitude = location.latitude
     user.longitude = location.longitude
+    user.city = await get_city_name(location.latitude, location.longitude)
     db.commit()
     db.refresh(user)
 
-    return LocationResponse(latitude=user.latitude, longitude=user.longitude)
+    return LocationResponse(latitude=user.latitude, longitude=user.longitude, city=user.city)
