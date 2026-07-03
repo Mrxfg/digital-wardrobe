@@ -7,11 +7,13 @@ from app.schemas.outfit_item import OutfitItemCreate
 
 class OutfitCreate(BaseModel):
     name: str
+    capsule_id: Optional[int] = None
     items: list[OutfitItemCreate] = []
 
 
 class OutfitUpdate(BaseModel):
     name: Optional[str] = None
+    capsule_id: Optional[int] = None
     items: Optional[list[OutfitItemCreate]] = None
 
 
