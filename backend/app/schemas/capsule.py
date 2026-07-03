@@ -43,6 +43,9 @@ class CapsuleListResponse(BaseModel):
 class CapsuleOutfitItem(BaseModel):
     clothing_id: int
     image_url: Optional[str] = None
+    x: float = 0.0
+    y: float = 0.0
+    scale: float = 1.0
 
 
 class CapsuleOutfit(BaseModel):

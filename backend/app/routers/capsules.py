@@ -125,6 +125,9 @@ def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Ses
                     CapsuleOutfitItem(
                         clothing_id=item.clothing_item_id,
                         image_url=item.image_url,
+                        x=item.x,
+                        y=item.y,
+                        scale=item.scale,
                     )
                     for item in outfit_items
                 ],
