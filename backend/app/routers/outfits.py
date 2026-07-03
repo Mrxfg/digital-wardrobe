@@ -312,7 +312,7 @@ def remove_item_from_outfit(
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     outfit_item = (
-        db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id, OutfitItem.clothing_item_id == item_id).first()
+        db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id, OutfitItem.id == item_id).first()
     )
 
     if not outfit_item:
