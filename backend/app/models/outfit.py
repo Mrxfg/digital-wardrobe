@@ -14,6 +14,8 @@ class Outfit(Base):
 
     name = Column(String, nullable=False)
 
+    capsule_id = Column(Integer, ForeignKey("capsules.id"), nullable=True)
+
     is_deleted = Column(Boolean, default=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
