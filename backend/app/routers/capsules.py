@@ -1,50 +1,147 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.capsule import Capsule
 from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
-from app.schemas.capsule import CapsuleCreate, CapsuleResponse, CapsuleUpdate
+from app.models.outfit import Outfit
+from app.models.outfit_item import OutfitItem
+from app.schemas.capsule import (
+    CapsuleCreate,
+    CapsuleDetailResponse,
+    CapsuleItemLight,
+    CapsuleOutfit,
+    CapsuleOutfitItem,
+    CapsuleResponse,
+    CapsuleUpdate,
+)
 from app.schemas.capsule_item import CapsuleItemCreate, CapsuleItemResponse
 from app.schemas.clothing_item import ClothingItemResponse
+from app.schemas.outfit import OutfitCreate, OutfitResponse
 
 router = APIRouter(prefix="/capsules", tags=["Capsules"])
 
 
 @router.get("/", response_model=list[CapsuleResponse])
 def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    query = db.query(Capsule).filter(
-        Capsule.user_id == current_user["user_id"],
-        Capsule.is_deleted.is_(False),
+    query = (
+        db.query(Capsule)
+        .options(selectinload(Capsule.items))
+        .filter(
+            Capsule.user_id == current_user["user_id"],
+            Capsule.is_deleted.is_(False),
+        )
     )
 
     if name:
         query = query.filter(Capsule.name.ilike(f"%{name}%"))
 
-    return query.all()
+    capsules = query.order_by(Capsule.created_at.desc()).all()
+
+    return [
+        CapsuleResponse(
+            id=c.id,
+            user_id=c.user_id,
+            name=c.name,
+            description=c.description,
+            season=c.season,
+            is_deleted=c.is_deleted,
+            items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in c.items],
+        )
+        for c in capsules
+    ]
 
 
 @router.get("/trash", response_model=list[CapsuleResponse])
 def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Capsule).filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True)).all()
+    capsules = (
+        db.query(Capsule)
+        .options(selectinload(Capsule.items))
+        .filter(Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .order_by(Capsule.created_at.desc())
+        .all()
+    )
+
+    return [
+        CapsuleResponse(
+            id=c.id,
+            user_id=c.user_id,
+            name=c.name,
+            description=c.description,
+            season=c.season,
+            is_deleted=c.is_deleted,
+            days_until_deleted=max(0, 14 - (datetime.now(timezone.utc) - c.deleted_at).days) if c.deleted_at else None,
+            items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in c.items],
+        )
+        for c in capsules
+    ]
 
 
-@router.get("/{capsule_id}", response_model=CapsuleResponse)
+@router.get("/{capsule_id}", response_model=CapsuleDetailResponse)
 def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     capsule = (
         db.query(Capsule)
-        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(False))
+        .options(selectinload(Capsule.items))
+        .filter(
+            Capsule.id == capsule_id,
+            Capsule.user_id == current_user["user_id"],
+            Capsule.is_deleted.is_(False),
+        )
         .first()
     )
 
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
 
-    return capsule
+    # Find outfits that belong to this capsule
+    outfits_query = (
+        db.query(Outfit)
+        .filter(
+            Outfit.capsule_id == capsule_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
+        .all()
+    )
+
+    outfits_data = []
+    for outfit in outfits_query:
+        outfit_items = (
+            db.query(OutfitItem)
+            .options(selectinload(OutfitItem.clothing_item))
+            .filter(OutfitItem.outfit_id == outfit.id)
+            .all()
+        )
+
+        outfits_data.append(
+            CapsuleOutfit(
+                name=outfit.name,
+                items=[
+                    CapsuleOutfitItem(
+                        clothing_id=item.clothing_item_id,
+                        image_url=item.image_url,
+                    )
+                    for item in outfit_items
+                ],
+            )
+        )
+
+    return CapsuleDetailResponse(
+        id=capsule.id,
+        user_id=capsule.user_id,
+        name=capsule.name,
+        description=capsule.description,
+        season=capsule.season,
+        is_deleted=capsule.is_deleted,
+        created_at=capsule.created_at,
+        items=capsule.items,
+        outfits=outfits_data,
+    )
 
 
 @router.post("/", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
@@ -59,12 +156,10 @@ def create_capsule(capsule: CapsuleCreate, current_user=Depends(get_current_user
     db.add(new_capsule)
     db.flush()
 
-    # Add items if provided
     if capsule.items:
         if len(capsule.items) > 8:
             raise HTTPException(status_code=400, detail="Capsule can contain maximum 8 items")
 
-        # Validate all items belong to user
         items = (
             db.query(ClothingItem)
             .filter(
@@ -83,7 +178,18 @@ def create_capsule(capsule: CapsuleCreate, current_user=Depends(get_current_user
     db.commit()
     db.refresh(new_capsule)
 
-    return new_capsule
+    # Reload with items for response
+    capsule_with_items = db.query(Capsule).options(selectinload(Capsule.items)).filter(Capsule.id == new_capsule.id).first()
+
+    return CapsuleResponse(
+        id=capsule_with_items.id,
+        user_id=capsule_with_items.user_id,
+        name=capsule_with_items.name,
+        description=capsule_with_items.description,
+        season=capsule_with_items.season,
+        is_deleted=capsule_with_items.is_deleted,
+        items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in capsule_with_items.items],
+    )
 
 
 @router.patch("/{capsule_id}", response_model=CapsuleResponse)
@@ -103,14 +209,29 @@ def update_capsule(
     db.commit()
     db.refresh(existing)
 
-    return existing
+    # Reload with items
+    capsule_with_items = db.query(Capsule).options(selectinload(Capsule.items)).filter(Capsule.id == existing.id).first()
+
+    return CapsuleResponse(
+        id=capsule_with_items.id,
+        user_id=capsule_with_items.user_id,
+        name=capsule_with_items.name,
+        description=capsule_with_items.description,
+        season=capsule_with_items.season,
+        is_deleted=capsule_with_items.is_deleted,
+        items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in capsule_with_items.items],
+    )
 
 
 @router.delete("/{capsule_id}")
 def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     capsule = (
         db.query(Capsule)
-        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(False))
+        .filter(
+            Capsule.id == capsule_id,
+            Capsule.user_id == current_user["user_id"],
+            Capsule.is_deleted.is_(False),
+        )
         .first()
     )
 
@@ -118,6 +239,7 @@ def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: 
         raise HTTPException(status_code=404, detail="Capsule not found")
 
     capsule.is_deleted = True
+    capsule.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
     return {"message": "Capsule deleted successfully"}
@@ -127,7 +249,11 @@ def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: 
 def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     capsule = (
         db.query(Capsule)
-        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .filter(
+            Capsule.id == capsule_id,
+            Capsule.user_id == current_user["user_id"],
+            Capsule.is_deleted.is_(True),
+        )
         .first()
     )
 
@@ -135,6 +261,7 @@ def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db:
         raise HTTPException(status_code=404, detail="Capsule not found")
 
     capsule.is_deleted = False
+    capsule.deleted_at = None
     db.commit()
 
     return {"message": "Capsule restored successfully"}
@@ -144,7 +271,11 @@ def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db:
 def permanent_delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     capsule = (
         db.query(Capsule)
-        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .filter(
+            Capsule.id == capsule_id,
+            Capsule.user_id == current_user["user_id"],
+            Capsule.is_deleted.is_(True),
+        )
         .first()
     )
 
@@ -155,6 +286,97 @@ def permanent_delete_capsule(capsule_id: int, current_user=Depends(get_current_u
     db.commit()
 
     return {"message": "Capsule permanently deleted"}
+
+
+@router.post("/{capsule_id}/outfits", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
+def create_capsule_outfit(
+    capsule_id: int,
+    outfit_data: OutfitCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+
+    # Get all clothing item IDs in this capsule
+    capsule_item_ids = {ci.clothing_item_id for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == capsule_id).all()}
+
+    for item_data in outfit_data.items:
+        if item_data.clothing_item_id not in capsule_item_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Clothing item {item_data.clothing_item_id} is not in capsule {capsule_id}",
+            )
+
+    new_outfit = Outfit(user_id=current_user["user_id"], name=outfit_data.name, capsule_id=capsule_id)
+
+    db.add(new_outfit)
+    db.flush()
+
+    for item_data in outfit_data.items:
+        db.add(
+            OutfitItem(
+                outfit_id=new_outfit.id,
+                clothing_item_id=item_data.clothing_item_id,
+                x=item_data.x,
+                y=item_data.y,
+                scale=item_data.scale,
+            )
+        )
+
+    db.commit()
+    db.refresh(new_outfit)
+
+    return new_outfit
+
+
+@router.get("/{capsule_id}/outfits", response_model=list[OutfitResponse])
+def get_capsule_outfits(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+
+    return (
+        db.query(Outfit)
+        .filter(
+            Outfit.capsule_id == capsule_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
+        .all()
+    )
+
+
+@router.delete("/{capsule_id}/outfits/{outfit_id}")
+def delete_capsule_outfit(
+    capsule_id: int,
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    outfit = (
+        db.query(Outfit)
+        .filter(
+            Outfit.id == outfit_id,
+            Outfit.capsule_id == capsule_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
+        .first()
+    )
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Outfit not found in capsule")
+
+    outfit.is_deleted = True
+    outfit.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+    return {"message": "Outfit deleted from capsule"}
 
 
 @router.post("/{capsule_id}/items", response_model=CapsuleItemResponse)

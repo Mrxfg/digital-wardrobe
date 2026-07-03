@@ -4,11 +4,13 @@ from pydantic import BaseModel, Field
 class LocationUpdate(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    city: str | None = None
 
 
 class LocationResponse(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
+    city: str | None = None
 
 
 class WeatherResponse(BaseModel):
