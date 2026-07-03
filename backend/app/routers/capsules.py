@@ -300,10 +300,7 @@ def create_capsule_outfit(
         raise HTTPException(status_code=404, detail="Capsule not found")
 
     # Get all clothing item IDs in this capsule
-    capsule_item_ids = {
-        ci.clothing_item_id
-        for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == capsule_id).all()
-    }
+    capsule_item_ids = {ci.clothing_item_id for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == capsule_id).all()}
 
     for item_data in outfit_data.items:
         if item_data.clothing_item_id not in capsule_item_ids:
