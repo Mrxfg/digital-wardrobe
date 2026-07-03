@@ -138,8 +138,7 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
         # If outfit belongs to a capsule, validate all new items belong to it
         if existing.capsule_id is not None:
             capsule_item_ids = {
-                ci.clothing_item_id
-                for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == existing.capsule_id).all()
+                ci.clothing_item_id for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == existing.capsule_id).all()
             }
             for item_data in items_data:
                 if item_data["clothing_item_id"] not in capsule_item_ids:
@@ -311,9 +310,7 @@ def remove_item_from_outfit(
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
 
-    outfit_item = (
-        db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id, OutfitItem.id == item_id).first()
-    )
+    outfit_item = db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id, OutfitItem.id == item_id).first()
 
     if not outfit_item:
         raise HTTPException(status_code=404, detail="Item not found in outfit")
