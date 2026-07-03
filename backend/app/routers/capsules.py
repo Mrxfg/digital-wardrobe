@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -73,6 +74,7 @@ def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Dep
             description=c.description,
             season=c.season,
             is_deleted=c.is_deleted,
+            days_until_deleted=max(0, 30 - (datetime.now(timezone.utc) - c.deleted_at).days) if c.deleted_at else None,
             items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in c.items],
         )
         for c in capsules
@@ -240,6 +242,7 @@ def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: 
         raise HTTPException(status_code=404, detail="Capsule not found")
 
     capsule.is_deleted = True
+    capsule.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
     return {"message": "Capsule deleted successfully"}
@@ -261,6 +264,7 @@ def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db:
         raise HTTPException(status_code=404, detail="Capsule not found")
 
     capsule.is_deleted = False
+    capsule.deleted_at = None
     db.commit()
 
     return {"message": "Capsule restored successfully"}

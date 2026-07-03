@@ -15,6 +15,7 @@ class Outfit(Base):
     name = Column(String, nullable=False)
 
     is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
