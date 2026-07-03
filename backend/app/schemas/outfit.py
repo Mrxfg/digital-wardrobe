@@ -19,6 +19,8 @@ class OutfitResponse(BaseModel):
     id: int
     user_id: int
     name: str
+    is_deleted: bool = False
+    days_until_deleted: int | None = None
 
     class Config:
         from_attributes = True

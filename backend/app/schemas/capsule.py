@@ -72,6 +72,7 @@ class CapsuleResponse(BaseModel):
     description: str | None = None
     season: str | None = None
     is_deleted: bool = False
+    days_until_deleted: int | None = None
     items: list[CapsuleItemLight] = []
 
     class Config:

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -30,7 +31,22 @@ def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_use
 
 @router.get("/trash", response_model=list[OutfitResponse])
 def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Outfit).filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True)).all()
+    outfits = (
+        db.query(Outfit)
+        .filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
+        .order_by(Outfit.created_at.desc())
+        .all()
+    )
+    return [
+        OutfitResponse(
+            id=o.id,
+            user_id=o.user_id,
+            name=o.name,
+            is_deleted=o.is_deleted,
+            days_until_deleted=max(0, 30 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None,
+        )
+        for o in outfits
+    ]
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
@@ -132,6 +148,7 @@ def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     outfit.is_deleted = True
+    outfit.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
     return None
@@ -149,6 +166,7 @@ def restore_outfit(outfit_id: int, current_user=Depends(get_current_user), db: S
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     outfit.is_deleted = False
+    outfit.deleted_at = None
     db.commit()
 
     return {"message": "Outfit restored successfully"}
