@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
+from app.models.capsule import Capsule
+from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
@@ -20,7 +22,6 @@ def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_use
     query = db.query(Outfit).filter(
         Outfit.user_id == current_user["user_id"],
         Outfit.is_deleted.is_(False),
-        Outfit.capsule_id.is_(None),
     )
 
     if name:
@@ -65,7 +66,34 @@ def get_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Sessi
 
 @router.post("/", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
 def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    new_outfit = Outfit(user_id=current_user["user_id"], name=outfit.name)
+    # If capsule_id is provided, validate capsule and item membership
+    if outfit.capsule_id is not None:
+        capsule = (
+            db.query(Capsule)
+            .filter(
+                Capsule.id == outfit.capsule_id,
+                Capsule.user_id == current_user["user_id"],
+            )
+            .first()
+        )
+        if not capsule:
+            raise HTTPException(status_code=404, detail="Capsule not found")
+
+        capsule_item_ids = {
+            ci.clothing_item_id for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == outfit.capsule_id).all()
+        }
+        for item_data in outfit.items:
+            if item_data.clothing_item_id not in capsule_item_ids:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Clothing item {item_data.clothing_item_id} is not in capsule {outfit.capsule_id}",
+                )
+
+    new_outfit = Outfit(
+        user_id=current_user["user_id"],
+        name=outfit.name,
+        capsule_id=outfit.capsule_id,
+    )
 
     db.add(new_outfit)
     db.flush()
@@ -106,6 +134,18 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
 
     if "items" in update_data:
         items_data = update_data.pop("items")
+
+        # If outfit belongs to a capsule, validate all new items belong to it
+        if existing.capsule_id is not None:
+            capsule_item_ids = {
+                ci.clothing_item_id for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == existing.capsule_id).all()
+            }
+            for item_data in items_data:
+                if item_data["clothing_item_id"] not in capsule_item_ids:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Clothing item {item_data['clothing_item_id']} is not in capsule {existing.capsule_id}",
+                    )
 
         db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id).delete()
 
@@ -198,6 +238,22 @@ def add_item_to_outfit(
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
 
+    # If outfit belongs to a capsule, validate item belongs to that capsule
+    if outfit.capsule_id is not None:
+        capsule_item = (
+            db.query(CapsuleItem)
+            .filter(
+                CapsuleItem.capsule_id == outfit.capsule_id,
+                CapsuleItem.clothing_item_id == item.clothing_item_id,
+            )
+            .first()
+        )
+        if not capsule_item:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Clothing item {item.clothing_item_id} is not in capsule {outfit.capsule_id}",
+            )
+
     clothing = (
         db.query(ClothingItem)
         .filter(ClothingItem.id == item.clothing_item_id, ClothingItem.user_id == current_user["user_id"])
@@ -254,9 +310,7 @@ def remove_item_from_outfit(
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
 
-    outfit_item = (
-        db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id, OutfitItem.clothing_item_id == item_id).first()
-    )
+    outfit_item = db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id, OutfitItem.id == item_id).first()
 
     if not outfit_item:
         raise HTTPException(status_code=404, detail="Item not found in outfit")
