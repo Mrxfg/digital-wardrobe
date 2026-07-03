@@ -22,6 +22,7 @@ from app.schemas.capsule import (
 )
 from app.schemas.capsule_item import CapsuleItemCreate, CapsuleItemResponse
 from app.schemas.clothing_item import ClothingItemResponse
+from app.schemas.outfit import OutfitCreate, OutfitResponse
 
 router = APIRouter(prefix="/capsules", tags=["Capsules"])
 
@@ -97,18 +98,14 @@ def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Ses
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
 
-    # Find outfits that use items from this capsule
-    item_ids = [item.id for item in capsule.items]
-
+    # Find outfits that belong to this capsule
     outfits_query = (
         db.query(Outfit)
-        .join(OutfitItem)
         .filter(
-            OutfitItem.clothing_item_id.in_(item_ids),
+            Outfit.capsule_id == capsule_id,
             Outfit.user_id == current_user["user_id"],
             Outfit.is_deleted.is_(False),
         )
-        .distinct()
         .all()
     )
 
@@ -289,6 +286,100 @@ def permanent_delete_capsule(capsule_id: int, current_user=Depends(get_current_u
     db.commit()
 
     return {"message": "Capsule permanently deleted"}
+
+
+@router.post("/{capsule_id}/outfits", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
+def create_capsule_outfit(
+    capsule_id: int,
+    outfit_data: OutfitCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+
+    # Get all clothing item IDs in this capsule
+    capsule_item_ids = {
+        ci.clothing_item_id
+        for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == capsule_id).all()
+    }
+
+    for item_data in outfit_data.items:
+        if item_data.clothing_item_id not in capsule_item_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Clothing item {item_data.clothing_item_id} is not in capsule {capsule_id}",
+            )
+
+    new_outfit = Outfit(user_id=current_user["user_id"], name=outfit_data.name, capsule_id=capsule_id)
+
+    db.add(new_outfit)
+    db.flush()
+
+    for item_data in outfit_data.items:
+        db.add(
+            OutfitItem(
+                outfit_id=new_outfit.id,
+                clothing_item_id=item_data.clothing_item_id,
+                x=item_data.x,
+                y=item_data.y,
+                scale=item_data.scale,
+            )
+        )
+
+    db.commit()
+    db.refresh(new_outfit)
+
+    return new_outfit
+
+
+@router.get("/{capsule_id}/outfits", response_model=list[OutfitResponse])
+def get_capsule_outfits(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+
+    return (
+        db.query(Outfit)
+        .filter(
+            Outfit.capsule_id == capsule_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
+        .all()
+    )
+
+
+@router.delete("/{capsule_id}/outfits/{outfit_id}")
+def delete_capsule_outfit(
+    capsule_id: int,
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    outfit = (
+        db.query(Outfit)
+        .filter(
+            Outfit.id == outfit_id,
+            Outfit.capsule_id == capsule_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
+        .first()
+    )
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Outfit not found in capsule")
+
+    outfit.is_deleted = True
+    outfit.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+    return {"message": "Outfit deleted from capsule"}
 
 
 @router.post("/{capsule_id}/items", response_model=CapsuleItemResponse)

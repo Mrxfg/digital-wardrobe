@@ -20,6 +20,7 @@ def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_use
     query = db.query(Outfit).filter(
         Outfit.user_id == current_user["user_id"],
         Outfit.is_deleted.is_(False),
+        Outfit.capsule_id.is_(None),
     )
 
     if name:

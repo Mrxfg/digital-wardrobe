@@ -19,6 +19,7 @@ class OutfitResponse(BaseModel):
     id: int
     user_id: int
     name: str
+    capsule_id: int | None = None
     is_deleted: bool = False
     days_until_deleted: int | None = None
 
