@@ -44,7 +44,11 @@ class TestQR002FaultTolerance:
             )
 
             # System should handle failure gracefully
-            assert response.status_code in (200, 400, 500), "QRT-002: System should not crash on Rembg failure"
+            assert response.status_code in (
+                200,
+                400,
+                500,
+            ), "QRT-002: System should not crash on Rembg failure"
 
             # If 500, check that error is logged, not silent
             if response.status_code == 500:
@@ -64,4 +68,8 @@ class TestQR002FaultTolerance:
         )
 
         # Should return 400 (bad request), not 500 (server error)
-        assert response.status_code in (400, 422, 200), "QRT-002: Invalid images should be rejected, not crash the server"
+        assert response.status_code in (
+            400,
+            422,
+            200,
+        ), "QRT-002: Invalid images should be rejected, not crash the server"

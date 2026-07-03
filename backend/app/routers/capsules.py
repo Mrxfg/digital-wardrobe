@@ -28,7 +28,11 @@ router = APIRouter(prefix="/capsules", tags=["Capsules"])
 
 
 @router.get("/", response_model=list[CapsuleResponse])
-def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_capsules(
+    name: Optional[str] = None,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     query = (
         db.query(Capsule)
         .options(selectinload(Capsule.items))
@@ -48,8 +52,6 @@ def get_capsules(name: Optional[str] = None, current_user=Depends(get_current_us
             id=c.id,
             user_id=c.user_id,
             name=c.name,
-            description=c.description,
-            season=c.season,
             is_deleted=c.is_deleted,
             items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in c.items],
         )
@@ -72,10 +74,8 @@ def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Dep
             id=c.id,
             user_id=c.user_id,
             name=c.name,
-            description=c.description,
-            season=c.season,
             is_deleted=c.is_deleted,
-            days_until_deleted=max(0, 14 - (datetime.now(timezone.utc) - c.deleted_at).days) if c.deleted_at else None,
+            days_until_deleted=(max(0, 14 - (datetime.now(timezone.utc) - c.deleted_at).days) if c.deleted_at else None),
             items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in c.items],
         )
         for c in capsules
@@ -83,7 +83,11 @@ def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Dep
 
 
 @router.get("/{capsule_id}", response_model=CapsuleDetailResponse)
-def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_capsule(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     capsule = (
         db.query(Capsule)
         .options(selectinload(Capsule.items))
@@ -138,22 +142,22 @@ def get_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Ses
         id=capsule.id,
         user_id=capsule.user_id,
         name=capsule.name,
-        description=capsule.description,
-        season=capsule.season,
         is_deleted=capsule.is_deleted,
         created_at=capsule.created_at,
-        items=capsule.items,
+        items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in capsule.items],
         outfits=outfits_data,
     )
 
 
 @router.post("/", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
-def create_capsule(capsule: CapsuleCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def create_capsule(
+    capsule: CapsuleCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     new_capsule = Capsule(
         user_id=current_user["user_id"],
         name=capsule.name,
-        description=capsule.description,
-        season=capsule.season,
     )
 
     db.add(new_capsule)
@@ -188,8 +192,6 @@ def create_capsule(capsule: CapsuleCreate, current_user=Depends(get_current_user
         id=capsule_with_items.id,
         user_id=capsule_with_items.user_id,
         name=capsule_with_items.name,
-        description=capsule_with_items.description,
-        season=capsule_with_items.season,
         is_deleted=capsule_with_items.is_deleted,
         items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in capsule_with_items.items],
     )
@@ -197,7 +199,10 @@ def create_capsule(capsule: CapsuleCreate, current_user=Depends(get_current_user
 
 @router.patch("/{capsule_id}", response_model=CapsuleResponse)
 def update_capsule(
-    capsule_id: int, capsule: CapsuleUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    capsule_id: int,
+    capsule: CapsuleUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     existing = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
 
@@ -219,15 +224,17 @@ def update_capsule(
         id=capsule_with_items.id,
         user_id=capsule_with_items.user_id,
         name=capsule_with_items.name,
-        description=capsule_with_items.description,
-        season=capsule_with_items.season,
         is_deleted=capsule_with_items.is_deleted,
         items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in capsule_with_items.items],
     )
 
 
 @router.delete("/{capsule_id}")
-def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_capsule(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     capsule = (
         db.query(Capsule)
         .filter(
@@ -249,7 +256,11 @@ def delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: 
 
 
 @router.post("/{capsule_id}/restore")
-def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def restore_capsule(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     capsule = (
         db.query(Capsule)
         .filter(
@@ -271,7 +282,11 @@ def restore_capsule(capsule_id: int, current_user=Depends(get_current_user), db:
 
 
 @router.delete("/{capsule_id}/permanent")
-def permanent_delete_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def permanent_delete_capsule(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     capsule = (
         db.query(Capsule)
         .filter(
@@ -341,7 +356,10 @@ def delete_capsule_outfit(
 
 @router.post("/{capsule_id}/items", response_model=CapsuleItemResponse)
 def add_item_to_capsule(
-    capsule_id: int, item: CapsuleItemCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    capsule_id: int,
+    item: CapsuleItemCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
 
@@ -355,7 +373,10 @@ def add_item_to_capsule(
 
     clothing = (
         db.query(ClothingItem)
-        .filter(ClothingItem.id == item.clothing_item_id, ClothingItem.user_id == current_user["user_id"])
+        .filter(
+            ClothingItem.id == item.clothing_item_id,
+            ClothingItem.user_id == current_user["user_id"],
+        )
         .first()
     )
 
@@ -364,7 +385,10 @@ def add_item_to_capsule(
 
     existing_item = (
         db.query(CapsuleItem)
-        .filter(CapsuleItem.capsule_id == capsule_id, CapsuleItem.clothing_item_id == item.clothing_item_id)
+        .filter(
+            CapsuleItem.capsule_id == capsule_id,
+            CapsuleItem.clothing_item_id == item.clothing_item_id,
+        )
         .first()
     )
 
@@ -381,7 +405,11 @@ def add_item_to_capsule(
 
 
 @router.get("/{capsule_id}/items", response_model=list[ClothingItemResponse])
-def get_capsule_items(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_capsule_items(
+    capsule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
 
     if not capsule:
@@ -399,7 +427,10 @@ def get_capsule_items(capsule_id: int, current_user=Depends(get_current_user), d
 
 @router.delete("/{capsule_id}/items/{item_id}")
 def remove_item_from_capsule(
-    capsule_id: int, item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    capsule_id: int,
+    item_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     capsule = db.query(Capsule).filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"]).first()
 
@@ -407,7 +438,12 @@ def remove_item_from_capsule(
         raise HTTPException(status_code=404, detail="Capsule not found")
 
     capsule_item = (
-        db.query(CapsuleItem).filter(CapsuleItem.capsule_id == capsule_id, CapsuleItem.clothing_item_id == item_id).first()
+        db.query(CapsuleItem)
+        .filter(
+            CapsuleItem.capsule_id == capsule_id,
+            CapsuleItem.clothing_item_id == item_id,
+        )
+        .first()
     )
 
     if not capsule_item:

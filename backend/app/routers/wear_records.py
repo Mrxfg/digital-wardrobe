@@ -10,19 +10,31 @@ from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
 from app.models.wear_record import WearRecord
-from app.schemas.wear_record import WearRecordCreate, WearRecordResponse, WearRecordUpdate
+from app.schemas.wear_record import (
+    WearRecordCreate,
+    WearRecordResponse,
+    WearRecordUpdate,
+)
 
 router = APIRouter(prefix="/wear-records", tags=["Wear Records"])
 
 
 @router.post("/", response_model=WearRecordResponse, status_code=status.HTTP_201_CREATED)
-def create_wear_record(record: WearRecordCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def create_wear_record(
+    record: WearRecordCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     outfit = db.query(Outfit).filter(Outfit.id == record.outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
 
-    wear_record = WearRecord(user_id=current_user["user_id"], outfit_id=record.outfit_id, worn_date=record.worn_date)
+    wear_record = WearRecord(
+        user_id=current_user["user_id"],
+        outfit_id=record.outfit_id,
+        worn_date=record.worn_date,
+    )
 
     db.add(wear_record)
     db.commit()
@@ -51,7 +63,11 @@ def get_wear_records(
 
 
 @router.get("/{record_id}", response_model=WearRecordResponse)
-def get_wear_record(record_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_wear_record(
+    record_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     return _build_response(db, record_id, current_user["user_id"])
 
 
@@ -83,7 +99,11 @@ def update_wear_record(
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_wear_record(record_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_wear_record(
+    record_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     record = db.query(WearRecord).filter(WearRecord.id == record_id, WearRecord.user_id == current_user["user_id"]).first()
 
     if not record:
