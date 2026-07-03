@@ -74,7 +74,7 @@ def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Dep
             description=c.description,
             season=c.season,
             is_deleted=c.is_deleted,
-            days_until_deleted=max(0, 30 - (datetime.now(timezone.utc) - c.deleted_at).days) if c.deleted_at else None,
+            days_until_deleted=max(0, 14 - (datetime.now(timezone.utc) - c.deleted_at).days) if c.deleted_at else None,
             items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in c.items],
         )
         for c in capsules

@@ -43,7 +43,7 @@ def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depe
             user_id=o.user_id,
             name=o.name,
             is_deleted=o.is_deleted,
-            days_until_deleted=max(0, 30 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None,
+            days_until_deleted=max(0, 14 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None,
         )
         for o in outfits
     ]
