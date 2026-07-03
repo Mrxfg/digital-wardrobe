@@ -112,30 +112,69 @@ class TestSaveLocation:
     """Scenario 3 — saving user location manually."""
 
     def test_save_valid_coordinates(self, client, db_session):
-        """Valid lat/lon → 200, coordinates persisted."""
+        """Valid lat/lon → 200, city auto-resolved from coordinates."""
         _create_user(db_session)
 
-        resp = client.post("/weather/location", json={"latitude": 55.75, "longitude": 37.62})
+        with patch("app.routers.weather.get_city_name", return_value="Москва"):
+            resp = client.post("/weather/location", json={"latitude": 55.75, "longitude": 37.62})
+
         assert resp.status_code == 200
         data = resp.json()
         assert data["latitude"] == 55.75
         assert data["longitude"] == 37.62
+        assert data["city"] == "Москва"
 
         # Verify persistence
         user = db_session.query(User).filter(User.id == 1).first()
         assert user.latitude == 55.75
         assert user.longitude == 37.62
+        assert user.city == "Москва"
 
     def test_save_and_update_coordinates(self, client, db_session):
-        """Saving again overwrites previous coordinates."""
+        """Saving again overwrites previous coordinates and city."""
         _create_user(db_session, latitude=59.93, longitude=30.36)
 
-        resp = client.post("/weather/location", json={"latitude": 55.75, "longitude": 37.62})
+        with patch("app.routers.weather.get_city_name", return_value="Москва"):
+            resp = client.post(
+                "/weather/location",
+                json={"latitude": 55.75, "longitude": 37.62},
+            )
         assert resp.status_code == 200
         assert resp.json()["latitude"] == 55.75
+        assert resp.json()["city"] == "Москва"
 
         user = db_session.query(User).filter(User.id == 1).first()
         assert user.latitude == 55.75
+        assert user.city == "Москва"
+
+        # Update again — city changes with new coordinates
+        with patch("app.routers.weather.get_city_name", return_value="Санкт-Петербург"):
+            resp = client.post(
+                "/weather/location",
+                json={"latitude": 59.93, "longitude": 30.36},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["city"] == "Санкт-Петербург"
+
+        user = db_session.query(User).filter(User.id == 1).first()
+        assert user.city == "Санкт-Петербург"
+
+    def test_save_with_explicit_city(self, client, db_session):
+        """City provided in POST → saved as-is, Nominatim not called."""
+        _create_user(db_session)
+
+        resp = client.post(
+            "/weather/location",
+            json={"latitude": 55.75, "longitude": 37.62, "city": "Москва"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["latitude"] == 55.75
+        assert data["longitude"] == 37.62
+        assert data["city"] == "Москва"
+
+        user = db_session.query(User).filter(User.id == 1).first()
+        assert user.city == "Москва"
 
     # --- Validation: out-of-range ---
 
@@ -199,6 +238,25 @@ class TestGetLocation:
         data = resp.json()
         assert data["latitude"] == 59.93
         assert data["longitude"] == 30.36
+        assert data["city"] is None
+
+    def test_get_location_with_city(self, client, db_session):
+        """Saved coordinates with city → 200 with city."""
+        user = db_session.query(User).filter(User.id == 1).first()
+        if not user:
+            user = User(id=1, telegram_id="123456789", username="testuser")
+            db_session.add(user)
+        user.latitude = 55.75
+        user.longitude = 37.62
+        user.city = "Москва"
+        db_session.commit()
+
+        resp = client.get("/weather/location")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["latitude"] == 55.75
+        assert data["longitude"] == 37.62
+        assert data["city"] == "Москва"
 
     def test_get_location_not_set(self, client, db_session):
         """User exists but no coordinates → 200 with nulls."""
@@ -209,6 +267,7 @@ class TestGetLocation:
         data = resp.json()
         assert data["latitude"] is None
         assert data["longitude"] is None
+        assert data["city"] is None
 
     def test_get_location_user_not_found(self, client):
         """No user record → 200 with nulls."""
@@ -217,3 +276,4 @@ class TestGetLocation:
         data = resp.json()
         assert data["latitude"] is None
         assert data["longitude"] is None
+        assert data["city"] is None

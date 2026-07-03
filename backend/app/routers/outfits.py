@@ -1,14 +1,14 @@
+from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
-from app.schemas.clothing_item import ClothingItemResponse
 from app.schemas.outfit import OutfitCreate, OutfitResponse, OutfitUpdate
 from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
 
@@ -20,6 +20,7 @@ def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_use
     query = db.query(Outfit).filter(
         Outfit.user_id == current_user["user_id"],
         Outfit.is_deleted.is_(False),
+        Outfit.capsule_id.is_(None),
     )
 
     if name:
@@ -30,7 +31,22 @@ def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_use
 
 @router.get("/trash", response_model=list[OutfitResponse])
 def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Outfit).filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True)).all()
+    outfits = (
+        db.query(Outfit)
+        .filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
+        .order_by(Outfit.created_at.desc())
+        .all()
+    )
+    return [
+        OutfitResponse(
+            id=o.id,
+            user_id=o.user_id,
+            name=o.name,
+            is_deleted=o.is_deleted,
+            days_until_deleted=max(0, 14 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None,
+        )
+        for o in outfits
+    ]
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
@@ -47,11 +63,32 @@ def get_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Sessi
     return outfit
 
 
-@router.post("/", response_model=OutfitResponse)
+@router.post("/", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
 def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     new_outfit = Outfit(user_id=current_user["user_id"], name=outfit.name)
 
     db.add(new_outfit)
+    db.flush()
+
+    if outfit.items:
+        for item_data in outfit.items:
+            clothing = (
+                db.query(ClothingItem)
+                .filter(ClothingItem.id == item_data.clothing_item_id, ClothingItem.user_id == current_user["user_id"])
+                .first()
+            )
+            if not clothing:
+                raise HTTPException(status_code=404, detail=f"Clothing item {item_data.clothing_item_id} not found")
+            db.add(
+                OutfitItem(
+                    outfit_id=new_outfit.id,
+                    clothing_item_id=item_data.clothing_item_id,
+                    x=item_data.x,
+                    y=item_data.y,
+                    scale=item_data.scale,
+                )
+            )
+
     db.commit()
     db.refresh(new_outfit)
 
@@ -67,6 +104,29 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
 
     update_data = outfit.model_dump(exclude_unset=True)
 
+    if "items" in update_data:
+        items_data = update_data.pop("items")
+
+        db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id).delete()
+
+        for item_data in items_data:
+            clothing = (
+                db.query(ClothingItem)
+                .filter(ClothingItem.id == item_data["clothing_item_id"], ClothingItem.user_id == current_user["user_id"])
+                .first()
+            )
+            if not clothing:
+                raise HTTPException(status_code=404, detail=f"Clothing item {item_data['clothing_item_id']} not found")
+            db.add(
+                OutfitItem(
+                    outfit_id=outfit_id,
+                    clothing_item_id=item_data["clothing_item_id"],
+                    x=item_data.get("x", 0.0),
+                    y=item_data.get("y", 0.0),
+                    scale=item_data.get("scale", 1.0),
+                )
+            )
+
     for key, value in update_data.items():
         setattr(existing, key, value)
 
@@ -76,7 +136,7 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
     return existing
 
 
-@router.delete("/{outfit_id}")
+@router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     outfit = (
         db.query(Outfit)
@@ -88,9 +148,10 @@ def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     outfit.is_deleted = True
+    outfit.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
-    return {"message": "Outfit deleted successfully"}
+    return None
 
 
 @router.post("/{outfit_id}/restore")
@@ -105,6 +166,7 @@ def restore_outfit(outfit_id: int, current_user=Depends(get_current_user), db: S
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     outfit.is_deleted = False
+    outfit.deleted_at = None
     db.commit()
 
     return {"message": "Outfit restored successfully"}
@@ -127,7 +189,7 @@ def permanent_delete_outfit(outfit_id: int, current_user=Depends(get_current_use
     return {"message": "Outfit permanently deleted"}
 
 
-@router.post("/{outfit_id}/items", response_model=OutfitItemResponse)
+@router.post("/{outfit_id}/items", response_model=OutfitItemResponse, status_code=status.HTTP_201_CREATED)
 def add_item_to_outfit(
     outfit_id: int, item: OutfitItemCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -144,6 +206,7 @@ def add_item_to_outfit(
 
     if not clothing:
         raise HTTPException(status_code=404, detail="Clothing item not found")
+
     existing_item = (
         db.query(OutfitItem)
         .filter(OutfitItem.outfit_id == outfit_id, OutfitItem.clothing_item_id == item.clothing_item_id)
@@ -153,7 +216,13 @@ def add_item_to_outfit(
     if existing_item:
         raise HTTPException(status_code=400, detail="Item already exists in outfit")
 
-    outfit_item = OutfitItem(outfit_id=outfit_id, clothing_item_id=item.clothing_item_id)
+    outfit_item = OutfitItem(
+        outfit_id=outfit_id,
+        clothing_item_id=item.clothing_item_id,
+        x=item.x,
+        y=item.y,
+        scale=item.scale,
+    )
 
     db.add(outfit_item)
     db.commit()
@@ -162,7 +231,7 @@ def add_item_to_outfit(
     return outfit_item
 
 
-@router.get("/{outfit_id}/items", response_model=list[ClothingItemResponse])
+@router.get("/{outfit_id}/items", response_model=list[OutfitItemResponse])
 def get_outfit_items(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     outfit = db.query(Outfit).filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
@@ -170,16 +239,13 @@ def get_outfit_items(outfit_id: int, current_user=Depends(get_current_user), db:
         raise HTTPException(status_code=404, detail="Outfit not found")
 
     items = (
-        db.query(ClothingItem)
-        .join(OutfitItem, ClothingItem.id == OutfitItem.clothing_item_id)
-        .filter(OutfitItem.outfit_id == outfit_id, ClothingItem.is_deleted.is_(False))
-        .all()
+        db.query(OutfitItem).options(selectinload(OutfitItem.clothing_item)).filter(OutfitItem.outfit_id == outfit_id).all()
     )
 
     return items
 
 
-@router.delete("/{outfit_id}/items/{item_id}")
+@router.delete("/{outfit_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_item_from_outfit(
     outfit_id: int, item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -198,4 +264,4 @@ def remove_item_from_outfit(
     db.delete(outfit_item)
     db.commit()
 
-    return {"message": "Item removed from outfit"}
+    return None
