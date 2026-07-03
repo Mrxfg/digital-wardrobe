@@ -9,7 +9,6 @@ from app.dependencies.auth import get_current_user
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
-from app.schemas.clothing_item import ClothingItemResponse
 from app.schemas.outfit import OutfitCreate, OutfitResponse, OutfitUpdate
 from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
 
