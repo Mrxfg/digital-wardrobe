@@ -18,11 +18,21 @@ router = APIRouter(prefix="/outfits", tags=["Outfits"])
 
 
 @router.get("/", response_model=list[OutfitResponse])
-def get_outfits(name: Optional[str] = None, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_outfits(
+    name: Optional[str] = None,
+    capsule_id: Optional[int] = None,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     query = db.query(Outfit).filter(
         Outfit.user_id == current_user["user_id"],
         Outfit.is_deleted.is_(False),
     )
+
+    if capsule_id is not None:
+        query = query.filter(Outfit.capsule_id == capsule_id)
+    else:
+        query = query.filter(Outfit.capsule_id.is_(None))
 
     if name:
         query = query.filter(Outfit.name.ilike(f"%{name}%"))
@@ -44,17 +54,25 @@ def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depe
             user_id=o.user_id,
             name=o.name,
             is_deleted=o.is_deleted,
-            days_until_deleted=max(0, 14 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None,
+            days_until_deleted=(max(0, 14 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None),
         )
         for o in outfits
     ]
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
-def get_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_outfit(
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     outfit = (
         db.query(Outfit)
-        .filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(False))
+        .filter(
+            Outfit.id == outfit_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
         .first()
     )
 
@@ -65,7 +83,11 @@ def get_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Sessi
 
 
 @router.post("/", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
-def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def create_outfit(
+    outfit: OutfitCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     # If capsule_id is provided, validate capsule and item membership
     if outfit.capsule_id is not None:
         capsule = (
@@ -102,11 +124,17 @@ def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), 
         for item_data in outfit.items:
             clothing = (
                 db.query(ClothingItem)
-                .filter(ClothingItem.id == item_data.clothing_item_id, ClothingItem.user_id == current_user["user_id"])
+                .filter(
+                    ClothingItem.id == item_data.clothing_item_id,
+                    ClothingItem.user_id == current_user["user_id"],
+                )
                 .first()
             )
             if not clothing:
-                raise HTTPException(status_code=404, detail=f"Clothing item {item_data.clothing_item_id} not found")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Clothing item {item_data.clothing_item_id} not found",
+                )
             db.add(
                 OutfitItem(
                     outfit_id=new_outfit.id,
@@ -124,7 +152,12 @@ def create_outfit(outfit: OutfitCreate, current_user=Depends(get_current_user), 
 
 
 @router.patch("/{outfit_id}", response_model=OutfitResponse)
-def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def update_outfit(
+    outfit_id: int,
+    outfit: OutfitUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     existing = db.query(Outfit).filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
     if not existing:
@@ -152,11 +185,17 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
         for item_data in items_data:
             clothing = (
                 db.query(ClothingItem)
-                .filter(ClothingItem.id == item_data["clothing_item_id"], ClothingItem.user_id == current_user["user_id"])
+                .filter(
+                    ClothingItem.id == item_data["clothing_item_id"],
+                    ClothingItem.user_id == current_user["user_id"],
+                )
                 .first()
             )
             if not clothing:
-                raise HTTPException(status_code=404, detail=f"Clothing item {item_data['clothing_item_id']} not found")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Clothing item {item_data['clothing_item_id']} not found",
+                )
             db.add(
                 OutfitItem(
                     outfit_id=outfit_id,
@@ -177,10 +216,18 @@ def update_outfit(outfit_id: int, outfit: OutfitUpdate, current_user=Depends(get
 
 
 @router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_outfit(
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     outfit = (
         db.query(Outfit)
-        .filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(False))
+        .filter(
+            Outfit.id == outfit_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
         .first()
     )
 
@@ -195,10 +242,18 @@ def delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Se
 
 
 @router.post("/{outfit_id}/restore")
-def restore_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def restore_outfit(
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     outfit = (
         db.query(Outfit)
-        .filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
+        .filter(
+            Outfit.id == outfit_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(True),
+        )
         .first()
     )
 
@@ -213,10 +268,18 @@ def restore_outfit(outfit_id: int, current_user=Depends(get_current_user), db: S
 
 
 @router.delete("/{outfit_id}/permanent")
-def permanent_delete_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def permanent_delete_outfit(
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     outfit = (
         db.query(Outfit)
-        .filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
+        .filter(
+            Outfit.id == outfit_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(True),
+        )
         .first()
     )
 
@@ -229,9 +292,16 @@ def permanent_delete_outfit(outfit_id: int, current_user=Depends(get_current_use
     return {"message": "Outfit permanently deleted"}
 
 
-@router.post("/{outfit_id}/items", response_model=OutfitItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{outfit_id}/items",
+    response_model=OutfitItemResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def add_item_to_outfit(
-    outfit_id: int, item: OutfitItemCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    outfit_id: int,
+    item: OutfitItemCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     outfit = db.query(Outfit).filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
@@ -256,7 +326,10 @@ def add_item_to_outfit(
 
     clothing = (
         db.query(ClothingItem)
-        .filter(ClothingItem.id == item.clothing_item_id, ClothingItem.user_id == current_user["user_id"])
+        .filter(
+            ClothingItem.id == item.clothing_item_id,
+            ClothingItem.user_id == current_user["user_id"],
+        )
         .first()
     )
 
@@ -265,7 +338,10 @@ def add_item_to_outfit(
 
     existing_item = (
         db.query(OutfitItem)
-        .filter(OutfitItem.outfit_id == outfit_id, OutfitItem.clothing_item_id == item.clothing_item_id)
+        .filter(
+            OutfitItem.outfit_id == outfit_id,
+            OutfitItem.clothing_item_id == item.clothing_item_id,
+        )
         .first()
     )
 
@@ -288,7 +364,11 @@ def add_item_to_outfit(
 
 
 @router.get("/{outfit_id}/items", response_model=list[OutfitItemResponse])
-def get_outfit_items(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_outfit_items(
+    outfit_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     outfit = db.query(Outfit).filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"]).first()
 
     if not outfit:
@@ -303,7 +383,10 @@ def get_outfit_items(outfit_id: int, current_user=Depends(get_current_user), db:
 
 @router.delete("/{outfit_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_item_from_outfit(
-    outfit_id: int, item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    outfit_id: int,
+    item_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     outfit = db.query(Outfit).filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"]).first()
 

@@ -10,7 +10,11 @@ from app.dependencies.auth import get_current_user
 from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
 from app.models.outfit_item import OutfitItem
-from app.schemas.clothing_item import ClothingItemCreate, ClothingItemResponse, ClothingItemUpdate
+from app.schemas.clothing_item import (
+    ClothingItemCreate,
+    ClothingItemResponse,
+    ClothingItemUpdate,
+)
 
 router = APIRouter(prefix="/clothes", tags=["Clothes"])
 
@@ -25,7 +29,10 @@ def get_clothes(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(ClothingItem).filter(ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(False))
+    query = db.query(ClothingItem).filter(
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted.is_(False),
+    )
 
     if name:
         query = query.filter(ClothingItem.name.ilike(f"%{name}%"))
@@ -65,7 +72,12 @@ def _compute_days_remaining(deleted_at: datetime | None) -> int | None:
 @router.get("/trash", response_model=list[ClothingItemResponse])
 def get_trash(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     items = (
-        db.query(ClothingItem).filter(ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(True)).all()
+        db.query(ClothingItem)
+        .filter(
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(True),
+        )
+        .all()
     )
     for item in items:
         item.days_remaining = _compute_days_remaining(item.deleted_at)
@@ -77,7 +89,9 @@ def get_clothing_by_id(item_id: int, current_user=Depends(get_current_user), db:
     item = (
         db.query(ClothingItem)
         .filter(
-            ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(False)
+            ClothingItem.id == item_id,
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(False),
         )
         .first()
     )
@@ -93,7 +107,9 @@ def delete_clothing(item_id: int, current_user=Depends(get_current_user), db: Se
     item = (
         db.query(ClothingItem)
         .filter(
-            ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(False)
+            ClothingItem.id == item_id,
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(False),
         )
         .first()
     )
@@ -110,12 +126,17 @@ def delete_clothing(item_id: int, current_user=Depends(get_current_user), db: Se
 
 @router.patch("/{item_id}", response_model=ClothingItemResponse)
 def update_clothing(
-    item_id: int, clothing: ClothingItemUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    item_id: int,
+    clothing: ClothingItemUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     item = (
         db.query(ClothingItem)
         .filter(
-            ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(False)
+            ClothingItem.id == item_id,
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(False),
         )
         .first()
     )
@@ -135,7 +156,11 @@ def update_clothing(
 
 
 @router.post("/", response_model=ClothingItemResponse)
-def create_clothing(clothing: ClothingItemCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def create_clothing(
+    clothing: ClothingItemCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     new_item = ClothingItem(
         user_id=current_user["user_id"],
         name=clothing.name,
@@ -160,7 +185,11 @@ def create_clothing(clothing: ClothingItemCreate, current_user=Depends(get_curre
 def restore_clothing(item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     item = (
         db.query(ClothingItem)
-        .filter(ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(True))
+        .filter(
+            ClothingItem.id == item_id,
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(True),
+        )
         .first()
     )
 
@@ -178,7 +207,11 @@ def restore_clothing(item_id: int, current_user=Depends(get_current_user), db: S
 def permanent_delete_clothing(item_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     item = (
         db.query(ClothingItem)
-        .filter(ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"], ClothingItem.is_deleted.is_(True))
+        .filter(
+            ClothingItem.id == item_id,
+            ClothingItem.user_id == current_user["user_id"],
+            ClothingItem.is_deleted.is_(True),
+        )
         .first()
     )
 
