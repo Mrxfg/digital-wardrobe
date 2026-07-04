@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.schemas.outfit_item import OutfitItemCreate
+from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
 
 
 class OutfitCreate(BaseModel):
@@ -24,6 +24,7 @@ class OutfitResponse(BaseModel):
     capsule_id: int | None = None
     is_deleted: bool = False
     days_until_deleted: int | None = None
+    items: list[OutfitItemResponse] = []
 
     class Config:
         from_attributes = True

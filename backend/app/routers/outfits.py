@@ -24,9 +24,13 @@ def get_outfits(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Outfit).filter(
-        Outfit.user_id == current_user["user_id"],
-        Outfit.is_deleted.is_(False),
+    query = (
+        db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
+        .filter(
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(False),
+        )
     )
 
     if capsule_id is not None:
@@ -44,6 +48,7 @@ def get_outfits(
 def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     outfits = (
         db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
         .filter(Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
         .order_by(Outfit.created_at.desc())
         .all()
@@ -55,6 +60,18 @@ def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depe
             name=o.name,
             is_deleted=o.is_deleted,
             days_until_deleted=(max(0, 14 - (datetime.now(timezone.utc) - o.deleted_at).days) if o.deleted_at else None),
+            items=[
+                OutfitItemResponse(
+                    id=item.id,
+                    outfit_id=item.outfit_id,
+                    clothing_item_id=item.clothing_item_id,
+                    x=item.x,
+                    y=item.y,
+                    scale=item.scale,
+                    image_url=item.image_url,
+                )
+                for item in o.items
+            ],
         )
         for o in outfits
     ]
@@ -68,6 +85,7 @@ def get_outfit(
 ):
     outfit = (
         db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
         .filter(
             Outfit.id == outfit_id,
             Outfit.user_id == current_user["user_id"],
@@ -146,9 +164,16 @@ def create_outfit(
             )
 
     db.commit()
-    db.refresh(new_outfit)
 
-    return new_outfit
+    # Reload with items for response
+    outfit_with_items = (
+        db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
+        .filter(Outfit.id == new_outfit.id)
+        .first()
+    )
+
+    return outfit_with_items
 
 
 @router.patch("/{outfit_id}", response_model=OutfitResponse)
@@ -210,9 +235,16 @@ def update_outfit(
         setattr(existing, key, value)
 
     db.commit()
-    db.refresh(existing)
 
-    return existing
+    # Reload with items for response
+    outfit_with_items = (
+        db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
+        .filter(Outfit.id == existing.id)
+        .first()
+    )
+
+    return outfit_with_items
 
 
 @router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)

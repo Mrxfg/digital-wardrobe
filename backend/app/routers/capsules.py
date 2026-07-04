@@ -318,6 +318,7 @@ def get_capsule_outfits(
 
     return (
         db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
         .filter(
             Outfit.capsule_id == capsule_id,
             Outfit.user_id == current_user["user_id"],
