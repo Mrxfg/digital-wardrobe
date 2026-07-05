@@ -73,7 +73,12 @@ def get_item_tags(item_id: int, current_user=Depends(get_current_user), db: Sess
 
 
 @router.post("/items/{item_id}", response_model=list[TagResponse], status_code=201)
-def assign_tag_to_item(item_id: int, tag: TagCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def assign_tag_to_item(
+    item_id: int,
+    tag: TagCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Assign a tag to a clothing item. Creates the tag if it doesn't exist."""
     item = db.query(ClothingItem).filter(ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"]).first()
 
@@ -103,7 +108,12 @@ def assign_tag_to_item(item_id: int, tag: TagCreate, current_user=Depends(get_cu
 
 
 @router.delete("/items/{item_id}/{tag_id}")
-def remove_tag_from_item(item_id: int, tag_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def remove_tag_from_item(
+    item_id: int,
+    tag_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Remove a tag from a clothing item."""
     item = db.query(ClothingItem).filter(ClothingItem.id == item_id, ClothingItem.user_id == current_user["user_id"]).first()
 

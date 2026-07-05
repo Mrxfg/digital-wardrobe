@@ -166,7 +166,10 @@ class TestTrashDaysRemaining:
         data = resp.json()
         assert data["days_remaining"] is None
 
-    @pytest.mark.parametrize("deleted_days_ago,expected", [(0, 14), (1, 13), (7, 7), (13, 1), (14, 0), (20, 0)])
+    @pytest.mark.parametrize(
+        "deleted_days_ago,expected",
+        [(0, 14), (1, 13), (7, 7), (13, 1), (14, 0), (20, 0)],
+    )
     def test_days_remaining_parametrized(self, client, deleted_days_ago, expected):
         """Verify days_remaining = max(0, 14 - days_since_deleted)."""
         from app.database import get_db

@@ -16,35 +16,54 @@ class TestCapsulesCreate:
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Summer Capsule"
-        assert data["description"] is None
-        assert data["season"] is None
         assert data["items"] == []
+        assert "description" not in data
+        assert "season" not in data
 
-    def test_create_capsule_with_description(self, client):
-        """Create a capsule with description."""
+    def test_create_capsule_with_items_and_no_description_in_response(self, client):
+        """Create capsule with items — response contains only lightweight fields."""
+        item1 = client.post(
+            "/clothes/",
+            json={
+                "name": "Shirt",
+                "category": "top",
+                "color": "blue",
+                "season": "summer",
+                "material": "cotton",
+            },
+        ).json()
         resp = client.post(
             "/capsules/",
-            json={"name": "Work Capsule", "description": "For office days"},
+            json={"name": "Work Capsule", "items": [item1["id"]]},
         )
         assert resp.status_code == 201
-        assert resp.json()["description"] == "For office days"
-
-    def test_create_capsule_with_season(self, client):
-        """Create a capsule with season."""
-        resp = client.post("/capsules/", json={"name": "Winter", "season": "winter"})
-        assert resp.status_code == 201
-        assert resp.json()["season"] == "winter"
+        data = resp.json()
+        assert data["name"] == "Work Capsule"
+        assert "description" not in data
+        assert "season" not in data
 
     def test_create_capsule_with_items(self, client):
         """Create a capsule with clothing item IDs."""
         # Create two clothing items first
         item1 = client.post(
             "/clothes/",
-            json={"name": "Shirt", "category": "top", "color": "blue", "season": "summer", "material": "cotton"},
+            json={
+                "name": "Shirt",
+                "category": "top",
+                "color": "blue",
+                "season": "summer",
+                "material": "cotton",
+            },
         ).json()
         item2 = client.post(
             "/clothes/",
-            json={"name": "Pants", "category": "bottom", "color": "black", "season": "summer", "material": "denim"},
+            json={
+                "name": "Pants",
+                "category": "bottom",
+                "color": "black",
+                "season": "summer",
+                "material": "denim",
+            },
         ).json()
 
         resp = client.post(
@@ -124,7 +143,13 @@ class TestCapsulesGet:
         """Response includes items list."""
         item = client.post(
             "/clothes/",
-            json={"name": "Shirt", "category": "top", "color": "blue", "season": "summer", "material": "cotton"},
+            json={
+                "name": "Shirt",
+                "category": "top",
+                "color": "blue",
+                "season": "summer",
+                "material": "cotton",
+            },
         ).json()
 
         create_resp = client.post("/capsules/", json={"name": "Test", "items": [item["id"]]})
@@ -148,22 +173,22 @@ class TestCapsulesUpdate:
         assert resp.json()["name"] == "New Name"
 
     def test_update_capsule_description(self, client):
-        """Update capsule description."""
+        """Update capsule description — still succeeds but field not in response."""
         create_resp = client.post("/capsules/", json={"name": "Test"})
         capsule_id = create_resp.json()["id"]
 
         resp = client.patch(f"/capsules/{capsule_id}", json={"description": "Updated desc"})
         assert resp.status_code == 200
-        assert resp.json()["description"] == "Updated desc"
+        assert "description" not in resp.json()
 
     def test_update_capsule_season(self, client):
-        """Update capsule season."""
-        create_resp = client.post("/capsules/", json={"name": "Test", "season": "summer"})
+        """Update capsule season — still succeeds but field not in response."""
+        create_resp = client.post("/capsules/", json={"name": "Test"})
         capsule_id = create_resp.json()["id"]
 
         resp = client.patch(f"/capsules/{capsule_id}", json={"season": "winter"})
         assert resp.status_code == 200
-        assert resp.json()["season"] == "winter"
+        assert "season" not in resp.json()
 
     def test_update_capsule_not_found(self, client):
         """Update non-existent capsule → 404."""
@@ -229,7 +254,10 @@ class TestCapsuleItems:
                     "material": "cotton",
                 },
             ).json()
-            client.post(f"/capsules/{capsule['id']}/items", json={"clothing_item_id": item["id"]})
+            client.post(
+                f"/capsules/{capsule['id']}/items",
+                json={"clothing_item_id": item["id"]},
+            )
 
         # 9th should fail
         item9 = client.post(
