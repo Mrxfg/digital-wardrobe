@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -37,6 +37,15 @@ def create_wear_record(
     )
 
     db.add(wear_record)
+
+    # Update last_worn_at for all clothing items in the outfit
+    outfit_items = db.query(OutfitItem).filter(OutfitItem.outfit_id == record.outfit_id).all()
+    for item in outfit_items:
+        db.query(ClothingItem).filter(
+            ClothingItem.id == item.clothing_item_id,
+            ClothingItem.user_id == current_user["user_id"],
+        ).update({"last_worn_at": datetime.combine(record.worn_date, datetime.min.time())})
+
     db.commit()
     db.refresh(wear_record)
 
