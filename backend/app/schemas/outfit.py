@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
 
@@ -8,13 +8,27 @@ from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
 class OutfitCreate(BaseModel):
     name: str
     capsule_id: Optional[int] = None
-    items: list[OutfitItemCreate] = []
+    items: list[Union[int, OutfitItemCreate]] = []
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def coerce_items(cls, v):
+        if not isinstance(v, list):
+            return v
+        return [{"clothing_item_id": item} if isinstance(item, (int, float)) else item for item in v]
 
 
 class OutfitUpdate(BaseModel):
     name: Optional[str] = None
     capsule_id: Optional[int] = None
-    items: Optional[list[OutfitItemCreate]] = None
+    items: Optional[list[Union[int, OutfitItemCreate]]] = None
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def coerce_items(cls, v):
+        if not isinstance(v, list):
+            return v
+        return [{"clothing_item_id": item} if isinstance(item, (int, float)) else item for item in v]
 
 
 class OutfitResponse(BaseModel):
