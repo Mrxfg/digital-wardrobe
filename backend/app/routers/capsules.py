@@ -124,6 +124,7 @@ def get_capsule(
 
         outfits_data.append(
             CapsuleOutfit(
+                id=outfit.id,
                 name=outfit.name,
                 items=[
                     CapsuleOutfitItem(
