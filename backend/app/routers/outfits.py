@@ -77,6 +77,21 @@ def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depe
     ]
 
 
+@router.get("/trash/{outfit_id}", response_model=OutfitResponse)
+def get_trash_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    outfit = (
+        db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
+        .filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
+        .first()
+    )
+
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Trash outfit not found")
+
+    return outfit
+
+
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 def get_outfit(
     outfit_id: int,

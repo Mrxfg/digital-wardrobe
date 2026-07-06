@@ -82,6 +82,66 @@ def get_trash_capsules(current_user=Depends(get_current_user), db: Session = Dep
     ]
 
 
+@router.get("/trash/{capsule_id}", response_model=CapsuleDetailResponse)
+def get_trash_capsule(capsule_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    capsule = (
+        db.query(Capsule)
+        .options(selectinload(Capsule.items))
+        .filter(Capsule.id == capsule_id, Capsule.user_id == current_user["user_id"], Capsule.is_deleted.is_(True))
+        .first()
+    )
+
+    if not capsule:
+        raise HTTPException(status_code=404, detail="Trash capsule not found")
+
+    # Find outfits that belong to this capsule
+    outfits_query = (
+        db.query(Outfit)
+        .filter(
+            Outfit.capsule_id == capsule_id,
+            Outfit.user_id == current_user["user_id"],
+            Outfit.is_deleted.is_(True),
+        )
+        .all()
+    )
+
+    outfits_data = []
+    for outfit in outfits_query:
+        outfit_items = (
+            db.query(OutfitItem)
+            .options(selectinload(OutfitItem.clothing_item))
+            .filter(OutfitItem.outfit_id == outfit.id)
+            .all()
+        )
+
+        outfits_data.append(
+            CapsuleOutfit(
+                id=outfit.id,
+                name=outfit.name,
+                items=[
+                    CapsuleOutfitItem(
+                        clothing_id=item.clothing_item_id,
+                        image_url=item.image_url,
+                        x=item.x,
+                        y=item.y,
+                        scale=item.scale,
+                    )
+                    for item in outfit_items
+                ],
+            )
+        )
+
+    return CapsuleDetailResponse(
+        id=capsule.id,
+        user_id=capsule.user_id,
+        name=capsule.name,
+        is_deleted=capsule.is_deleted,
+        created_at=capsule.created_at,
+        items=[CapsuleItemLight(id=item.id, image_url=item.image_url) for item in capsule.items],
+        outfits=outfits_data,
+    )
+
+
 @router.get("/{capsule_id}", response_model=CapsuleDetailResponse)
 def get_capsule(
     capsule_id: int,
