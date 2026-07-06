@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.users import User
-from app.schemas.auth import TelegramInitData, TokenResponse
-from app.services.auth import create_access_token
+from app.schemas.auth import LoginRequest, RefreshRequest, TelegramInitData, TokenResponse
+from app.services.auth import create_access_token, decode_access_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -106,6 +106,45 @@ def telegram_webapp_login(payload: TelegramInitData, db: Session = Depends(get_d
     token = create_access_token(user.id)
 
     return {"access_token": token, "token_type": "bearer"}  # nosec B105
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    """Simple login by telegram_id. Returns a JWT token for the user."""
+    user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
+
+    if not user:
+        user = User(
+            telegram_id=payload.telegram_id,
+            username=payload.username,
+            first_name=payload.first_name,
+            avatar_url=payload.photo_url,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token(user.id)
+
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(payload: RefreshRequest):
+    """Refresh an expired token. Returns a new JWT if current token is valid."""
+    payload_data = decode_access_token(payload.access_token)
+
+    if not payload_data:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user_id = payload_data.get("user_id")
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = create_access_token(user_id)
+
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @router.get("/me")
