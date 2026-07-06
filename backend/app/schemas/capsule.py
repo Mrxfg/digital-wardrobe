@@ -41,6 +41,7 @@ class CapsuleOutfitItem(BaseModel):
 
 
 class CapsuleOutfit(BaseModel):
+    id: int
     name: str
     items: list[CapsuleOutfitItem] = []
 
