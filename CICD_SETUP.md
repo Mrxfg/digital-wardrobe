@@ -1,4 +1,4 @@
-# 🚀 CI/CD Setup Complete!
+# CI/CD Setup Complete!
 
 ## What's Been Created
 

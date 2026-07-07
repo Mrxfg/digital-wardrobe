@@ -1,10 +1,10 @@
 # Telegram Bot Setup Guide
 
-## 📱 Overview
+## Overview
 
 This guide will help you set up and configure the Telegram Bot for Digital Wardrobe application.
 
-## ✅ Current Bot Configuration
+## Current Bot Configuration
 
 **Bot Token:** You can take from BotFather
 
@@ -16,7 +16,7 @@ This guide will help you set up and configure the Telegram Bot for Digital Wardr
 
 ---
 
-## 🚀 Quick Setup
+## Quick Setup
 
 ### 1. Deploy Backend API
 
@@ -124,9 +124,9 @@ Delete webhook (useful for local development with polling).
 ```
 👋 Добро пожаловать в Digital Wardrobe!
 
-🎯 Ваш персональный цифровой гардероб в Telegram.
+ Ваш персональный цифровой гардероб в Telegram.
 
-📱 Используйте команды:
+Используйте команды:
 /wardrobe - Открыть мой гардероб
 /settings - Настройки
 /help - Помощь
@@ -137,36 +137,36 @@ Delete webhook (useful for local development with polling).
 ### /help
 **Response:**
 ```
-ℹ️ Помощь - Digital Wardrobe
+ Помощь - Digital Wardrobe
 
-📋 Доступные команды:
+Доступные команды:
 
 /start - Начать работу с ботом
 /wardrobe - Открыть ваш гардероб (Mini App)
 /settings - Настройки профиля
 /help - Показать это сообщение
 
-💡 Как использовать:
+ Как использовать:
 1. Добавляйте фото одежды
 2. Создавайте комплекты (outfits)
 3. Формируйте капсульные гардеробы
 4. Отслеживайте что носили
 
-🔗 Нужна помощь? Напишите @support
+ Нужна помощь? Напишите @support
 ```
 
 ### /settings
 **Response:**
 ```
-⚙️ Настройки
+Настройки
 
-👤 Профиль:
+Профиль:
 Имя: John
 Username: @john_doe
 ID: 123456789
 
-🔔 Уведомления: Включены
-🌍 Язык: Русский
+Уведомления: Включены
+Язык: Русский
 
 Для изменения настроек откройте /wardrobe
 ```
@@ -176,7 +176,7 @@ Opens Telegram Mini App with inline keyboard button.
 
 ---
 
-## 🔐 Security Considerations
+## Security Considerations
 
 ### 1. Use HTTPS in Production
 
@@ -237,7 +237,7 @@ curl -X POST "https://api.telegram.org/botyour-telegram-bot-token/sendMessage" \
 
 ---
 
-## 🔄 Webhook Updates Flow
+## Webhook Updates Flow
 
 ```
 User sends /start
@@ -255,7 +255,7 @@ User receives message
 
 ---
 
-## ⚠️ Troubleshooting
+## Troubleshooting
 
 ### Webhook not receiving updates
 
@@ -265,10 +265,10 @@ curl http://your-server-ip:8000/bot/webhook-info
 ```
 
 **Common issues:**
-- ✅ Make sure bot endpoint is accessible from internet
-- ✅ Check firewall allows port 8000
-- ✅ Verify BOT_TOKEN environment variable is set
-- ✅ Check Docker container is running: `docker compose ps`
+- Make sure bot endpoint is accessible from internet
+- Check firewall allows port 8000
+- Verify BOT_TOKEN environment variable is set
+- Check Docker container is running: `docker compose ps`
 
 ### Bot not responding
 
@@ -292,7 +292,7 @@ Webhook URL must:
 
 ---
 
-## 📦 Mini App Integration
+## Mini App Integration
 
 To enable `/wardrobe` command to open Mini App:
 
@@ -302,7 +302,7 @@ Edit `backend/app/routers/bot.py`:
 
 ```python
 {
-    "text": "🚀 Открыть гардероб",
+    "text": "Открыть гардероб",
     "web_app": {"url": "https://your-mini-app-url.com"}  # Replace with actual URL
 }
 ```
@@ -317,7 +317,7 @@ Edit `backend/app/routers/bot.py`:
 
 ---
 
-## 📊 Webhook Statistics
+## Webhook Statistics
 
 Check webhook performance:
 
@@ -333,7 +333,7 @@ curl "https://api.telegram.org/botyour-telegram-bot-token/getWebhookInfo"
 
 ---
 
-## 🎯 Acceptance Criteria Checklist
+## Acceptance Criteria Checklist
 
 - ✅ Bot is registered and has valid API token
 - ✅ Bot responds to `/start` command with welcome message
@@ -346,7 +346,7 @@ curl "https://api.telegram.org/botyour-telegram-bot-token/getWebhookInfo"
 
 ---
 
-## 📞 Support
+## Support
 
 - **API Documentation:** http://your-server-ip:8000/docs
 - **Telegram Bot API:** https://core.telegram.org/bots/api
@@ -355,4 +355,4 @@ curl "https://api.telegram.org/botyour-telegram-bot-token/getWebhookInfo"
 ---
 
 **Last Updated:** 2026-06-19  
-**Bot Status:** Ready for deployment ✅
+**Bot Status:** Ready for deployment
