@@ -11,7 +11,13 @@ from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
-from app.schemas.outfit import OutfitCreate, OutfitResponse, OutfitUpdate
+from app.schemas.outfit import (
+    GenerateOutfitRequest,
+    GenerateOutfitResponse,
+    OutfitCreate,
+    OutfitResponse,
+    OutfitUpdate,
+)
 from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
@@ -75,6 +81,98 @@ def get_trash_outfits(current_user=Depends(get_current_user), db: Session = Depe
         )
         for o in outfits
     ]
+
+
+@router.get("/trash/{outfit_id}", response_model=OutfitResponse)
+def get_trash_outfit(outfit_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    outfit = (
+        db.query(Outfit)
+        .options(selectinload(Outfit.items).selectinload(OutfitItem.clothing_item))
+        .filter(Outfit.id == outfit_id, Outfit.user_id == current_user["user_id"], Outfit.is_deleted.is_(True))
+        .first()
+    )
+
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Trash outfit not found")
+
+    return outfit
+
+
+@router.post("/generate", response_model=GenerateOutfitResponse)
+def generate_outfits(
+    body: GenerateOutfitRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate AI outfit suggestions from the user's wardrobe."""
+    query = db.query(ClothingItem).filter(
+        ClothingItem.user_id == current_user["user_id"],
+        ClothingItem.is_deleted.is_(False),
+    )
+
+    if body.capsule_id is not None:
+        capsule_item_ids = {
+            ci.clothing_item_id for ci in db.query(CapsuleItem).filter(CapsuleItem.capsule_id == body.capsule_id).all()
+        }
+        query = query.filter(ClothingItem.id.in_(capsule_item_ids))
+
+    items = query.all()
+
+    if len(items) < 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Need at least 3 clothing items to generate outfits",
+        )
+
+    # Group items by category
+    items_by_category: dict[str, list[dict]] = {}
+    for item in items:
+        cat = item.category
+        if cat not in items_by_category:
+            items_by_category[cat] = []
+        items_by_category[cat].append(
+            {
+                "id": item.id,
+                "name": item.name,
+                "color": item.color,
+                "category": item.category,
+                "image_url": item.image_url,
+            }
+        )
+
+    # Call AI service
+    from app.services.ai_stylist import generate_outfits as ai_generate
+
+    suggestions, was_fallback = ai_generate(items_by_category)
+
+    # Build response with item details
+    from app.schemas.outfit import GenerateOutfitItem, GenerateOutfitResponse, GenerateOutfitSuggestion
+
+    result_suggestions = []
+    for suggestion in suggestions:
+        suggestion_items = []
+        for item_id in suggestion.get("items", []):
+            matching = [i for i in items if i.id == item_id]
+            if matching:
+                item = matching[0]
+                suggestion_items.append(
+                    GenerateOutfitItem(
+                        clothing_item_id=item.id,
+                        name=item.name,
+                        image_url=item.image_url,
+                        category=item.category,
+                        color=item.color,
+                    )
+                )
+        if suggestion_items:
+            result_suggestions.append(
+                GenerateOutfitSuggestion(
+                    name=suggestion.get("name", "Outfit"),
+                    items=suggestion_items,
+                )
+            )
+
+    return GenerateOutfitResponse(suggestions=result_suggestions, fallback=was_fallback)
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
