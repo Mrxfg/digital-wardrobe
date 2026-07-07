@@ -31,6 +31,27 @@ class OutfitUpdate(BaseModel):
         return [{"clothing_item_id": item} if isinstance(item, (int, float)) else item for item in v]
 
 
+class GenerateOutfitRequest(BaseModel):
+    capsule_id: Optional[int] = None
+
+
+class GenerateOutfitItem(BaseModel):
+    clothing_item_id: int
+    name: str
+    image_url: Optional[str] = None
+    category: str
+    color: str
+
+
+class GenerateOutfitSuggestion(BaseModel):
+    name: str
+    items: list[GenerateOutfitItem]
+
+
+class GenerateOutfitResponse(BaseModel):
+    suggestions: list[GenerateOutfitSuggestion]
+
+
 class OutfitResponse(BaseModel):
     id: int
     user_id: int
