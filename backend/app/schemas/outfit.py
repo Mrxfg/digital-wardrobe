@@ -12,7 +12,7 @@ class OutfitCreate(BaseModel):
 
     @field_validator("items", mode="before")
     @classmethod
-    def coerce_items(cls, v):
+    def coerce_items(_cls, v):
         if not isinstance(v, list):
             return v
         return [{"clothing_item_id": item} if isinstance(item, (int, float)) else item for item in v]
@@ -25,7 +25,7 @@ class OutfitUpdate(BaseModel):
 
     @field_validator("items", mode="before")
     @classmethod
-    def coerce_items(cls, v):
+    def coerce_items(_cls, v):
         if not isinstance(v, list):
             return v
         return [{"clothing_item_id": item} if isinstance(item, (int, float)) else item for item in v]
