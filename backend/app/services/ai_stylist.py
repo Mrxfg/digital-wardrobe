@@ -93,14 +93,14 @@ def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
         used_ids = set()
 
         if len(categories) >= 2:
-            selected_categories = random.sample(categories, min(2, len(categories)))
+            selected_categories = random.sample(categories, min(2, len(categories)))  # nosec
         else:
             selected_categories = categories * 2
 
         for cat in selected_categories:
             available = [item for item in items_by_category[cat] if item["id"] not in used_ids]
             if available:
-                picked = random.choice(available)
+                picked = random.choice(available)  # nosec
                 chosen_items.append(picked["id"])
                 used_ids.add(picked["id"])
 
