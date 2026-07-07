@@ -82,7 +82,7 @@ def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
     return outfits
 
 
-async def generate_outfits(items_by_category: dict[str, list[dict]]) -> list[dict]:
+def generate_outfits(items_by_category: dict[str, list[dict]]) -> list[dict]:
     """Generate outfit combinations using Qwen AI with fallback.
 
     Returns a list of dicts with 'name' and 'items' (list of item IDs).
@@ -113,9 +113,9 @@ async def generate_outfits(items_by_category: dict[str, list[dict]]) -> list[dic
         "Content-Type": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-        try:
-            response = await client.post(QWEN_API_URL, json=payload, headers=headers)
+    try:
+        with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
+            response = client.post(QWEN_API_URL, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
 
@@ -132,11 +132,11 @@ async def generate_outfits(items_by_category: dict[str, list[dict]]) -> list[dic
             if isinstance(outfits, list) and len(outfits) > 0:
                 return outfits
 
-        except httpx.TimeoutException:
-            logger.warning("Qwen API timed out, using fallback")
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Qwen API error: {e.response.status_code} - {e.response.text}")
-        except (httpx.RequestError, json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.error(f"Qwen API failed: {e}")
+    except httpx.TimeoutException:
+        logger.warning("Qwen API timed out, using fallback")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Qwen API error: {e.response.status_code} - {e.response.text}")
+    except (httpx.RequestError, json.JSONDecodeError, KeyError, TypeError) as e:
+        logger.error(f"Qwen API failed: {e}")
 
     return _generate_fallback(items_by_category)
