@@ -41,6 +41,9 @@ class GenerateOutfitItem(BaseModel):
     image_url: Optional[str] = None
     category: str
     color: str
+    x: float = 0.0
+    y: float = 0.0
+    scale: float = 1.0
 
 
 class GenerateOutfitSuggestion(BaseModel):

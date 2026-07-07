@@ -52,6 +52,8 @@ Available items by category:
 Rules:
 - Each outfit must have 1 item from at least 2 different categories (e.g. top + bottom, top + shoes)
 - Prefer items with complementary colors
+- IMPORTANT: Each outfit must use different items — no item should appear in more than one suggestion
+- All {FALLBACK_COMBINATIONS} outfits must be distinct from each other in both items and style
 - Return ONLY a valid JSON array, no markdown, no explanation
 
 Format:
@@ -82,35 +84,54 @@ def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
     """Generate meaningful outfit combinations when AI is unavailable.
 
     Uses predefined templates for category pairs and picks random items.
-    Picks at least 2 items from at least 2 categories when possible.
-    If only 1 category exists, picks 2+ items from that single category.
+    Tracks used items globally so each suggestion uses different pieces.
     """
     categories = list(items_by_category.keys())
     outfits = []
+    globally_used_ids: set[int] = set()
+
+    # Flatten all available items for retrying
+    all_items = [item for items in items_by_category.values() for item in items]
+    random.shuffle(all_items)
 
     for i in range(FALLBACK_COMBINATIONS):
-        chosen_items = []
-        used_ids = set()
+        chosen_ids: list[int] = []
+        remaining = [item for item in all_items if item["id"] not in globally_used_ids]
+        # If not enough unused items, reset the pool for remaining slots
+        if len(remaining) < 2:
+            globally_used_ids.clear()
+            remaining = all_items
 
+        # Pick from at least 2 different categories when possible
         if len(categories) >= 2:
             selected_categories = random.sample(categories, min(2, len(categories)))  # nosec
         else:
             selected_categories = categories * 2
 
         for cat in selected_categories:
-            available = [item for item in items_by_category[cat] if item["id"] not in used_ids]
+            available = [item for item in remaining if item["category"] == cat and item["id"] not in globally_used_ids]
             if available:
                 picked = random.choice(available)  # nosec
-                chosen_items.append(picked["id"])
-                used_ids.add(picked["id"])
+                chosen_ids.append(picked["id"])
+                globally_used_ids.add(picked["id"])
+            else:
+                # Fallback to any unused item from other categories
+                for item in remaining:
+                    if item["id"] not in globally_used_ids:
+                        chosen_ids.append(item["id"])
+                        globally_used_ids.add(item["id"])
+                        break
 
-        if len(chosen_items) >= 2:
+        if len(chosen_ids) >= 2:
             name = _pick_fallback_name(selected_categories)
-            # Add a number suffix if we generate multiple outfits with the same template
+            suffix = "" if i == 0 else f" {i + 1}"
+            # Only add suffix if the name would otherwise collide
+            if i > 0 and any(o["name"].startswith(name) for o in outfits):
+                suffix = f" {i + 1}"
             outfits.append(
                 {
-                    "name": name if i == 0 else f"{name} {i + 1}",
-                    "items": chosen_items,
+                    "name": name + suffix,
+                    "items": chosen_ids,
                 }
             )
 
@@ -140,7 +161,7 @@ def generate_outfits(items_by_category: dict[str, list[dict]]) -> tuple[list[dic
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.8,
+        "temperature": 0.9,
         "max_tokens": 1024,
     }
 

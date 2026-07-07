@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import random
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -145,16 +146,40 @@ def generate_outfits(
 
     suggestions, was_fallback = ai_generate(items_by_category)
 
-    # Build response with item details
+    # Build response with item details and layout positions
     from app.schemas.outfit import GenerateOutfitItem, GenerateOutfitResponse, GenerateOutfitSuggestion
+
+    def _compute_layout(count: int) -> list[tuple[float, float, float]]:
+        """Compute x, y, scale for items so they don't overlap."""
+        positions = []
+        if count == 1:
+            positions.append((125.0, 140.0, 1.0))
+        elif count == 2:
+            positions.append((50.0, 130.0, 0.95))
+            positions.append((180.0, 130.0, 0.95))
+        elif count == 3:
+            positions.append((30.0, 120.0, 0.9))
+            positions.append((125.0, 70.0, 0.9))
+            positions.append((220.0, 120.0, 0.9))
+        else:
+            for i in range(min(count, 6)):
+                col = i % 2
+                row = i // 2
+                x = 40.0 + col * 160 + random.uniform(-5, 5)
+                y = 40.0 + row * 130 + random.uniform(-5, 5)
+                positions.append((x, y, 0.85))
+        return positions
 
     result_suggestions = []
     for suggestion in suggestions:
+        s_items = suggestion.get("items", [])
+        positions = _compute_layout(len(s_items))
         suggestion_items = []
-        for item_id in suggestion.get("items", []):
+        for idx, item_id in enumerate(s_items):
             matching = [i for i in items if i.id == item_id]
             if matching:
                 item = matching[0]
+                x, y, scale = positions[idx] if idx < len(positions) else (0.0, 0.0, 1.0)
                 suggestion_items.append(
                     GenerateOutfitItem(
                         clothing_item_id=item.id,
@@ -162,6 +187,9 @@ def generate_outfits(
                         image_url=item.image_url,
                         category=item.category,
                         color=item.color,
+                        x=x,
+                        y=y,
+                        scale=scale,
                     )
                 )
         if suggestion_items:
