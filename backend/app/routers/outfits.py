@@ -99,7 +99,7 @@ def get_trash_outfit(outfit_id: int, current_user=Depends(get_current_user), db:
 
 
 @router.post("/generate", response_model=GenerateOutfitResponse)
-async def generate_outfits(
+def generate_outfits(
     body: GenerateOutfitRequest,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -143,7 +143,7 @@ async def generate_outfits(
     # Call AI service
     from app.services.ai_stylist import generate_outfits as ai_generate
 
-    suggestions = await ai_generate(items_by_category)
+    suggestions = ai_generate(items_by_category)
 
     # Build response with item details
     from app.schemas.outfit import GenerateOutfitItem, GenerateOutfitResponse, GenerateOutfitSuggestion
