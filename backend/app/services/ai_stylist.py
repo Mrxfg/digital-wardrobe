@@ -45,7 +45,11 @@ Format:
 
 
 def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
-    """Generate random outfit combinations when AI is unavailable."""
+    """Generate random outfit combinations when AI is unavailable.
+
+    Picks at least 2 items from at least 2 categories when possible.
+    If only 1 category exists, picks 2+ items from that single category.
+    """
     categories = list(items_by_category.keys())
     outfits = []
 
@@ -53,8 +57,12 @@ def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
         chosen_items = []
         used_ids = set()
 
-        # Pick at least 2 different categories
-        selected_categories = random.sample(categories, min(2, len(categories)))
+        if len(categories) >= 2:
+            # Pick from at least 2 different categories
+            selected_categories = random.sample(categories, min(2, len(categories)))
+        else:
+            # Only 1 category — pick 2+ items from it
+            selected_categories = categories * 2
 
         for cat in selected_categories:
             available = [item for item in items_by_category[cat] if item["id"] not in used_ids]
