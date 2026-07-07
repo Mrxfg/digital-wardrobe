@@ -7,8 +7,8 @@ from typing import Optional
 import httpx
 
 QWEN_API_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
-QWEN_MODEL = "qwen3.7-plus"
-REQUEST_TIMEOUT = 60.0
+QWEN_MODEL = "qwen-plus"
+REQUEST_TIMEOUT = 10.0
 FALLBACK_COMBINATIONS = 3
 
 logger = logging.getLogger(__name__)
