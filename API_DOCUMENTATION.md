@@ -1,7 +1,7 @@
 # Digital Wardrobe API Documentation
 ---
 
-## 🔐 Authentication
+##  Authentication
 
 All endpoints (except `/auth/telegram` and `/health`) require JWT authentication.
 
@@ -69,7 +69,7 @@ Authorization: Bearer {access_token}
 
 ---
 
-## 👕 Clothes Endpoints
+## Clothes Endpoints
 
 ### 3. Get All Clothes
 
@@ -287,7 +287,7 @@ GET /clothes?name=shirt&category=tops&color=blue&season=summer&material=cotton
 
 ---
 
-## 👔 Outfits Endpoints
+## Outfits Endpoints
 
 ### 11. Get All Outfits
 
@@ -492,7 +492,7 @@ GET /outfits?name=casual
 
 ---
 
-## 💼 Capsules Endpoints
+## Capsules Endpoints
 
 ### 19. Get All Capsules
 
@@ -708,7 +708,7 @@ GET /capsules?name=winter
 
 ---
 
-## 📅 Wear Records Endpoints
+## Wear Records Endpoints
 
 ### 27. Create Wear Record
 
@@ -809,7 +809,7 @@ GET /capsules?name=winter
 
 ---
 
-## 📤 Upload Endpoint
+## Upload Endpoint
 
 ### 31. Upload Image
 
@@ -859,7 +859,7 @@ curl -X POST "http://your-server-ip:8000/upload/image" \
 
 ---
 
-## 🏥 Health Check
+## Health Check
 
 ### 32. Health Check
 
@@ -881,7 +881,7 @@ curl -X POST "http://your-server-ip:8000/upload/image" \
 
 ---
 
-## ⚠️ Error Responses
+## Error Responses
 
 ### Common Error Formats
 
@@ -928,7 +928,7 @@ curl -X POST "http://your-server-ip:8000/upload/image" \
 
 ---
 
-## 📊 Database Schema
+## Database Schema
 
 ### Tables Overview
 
@@ -986,7 +986,7 @@ curl -X POST "http://your-server-ip:8000/upload/image" \
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
 - ✅ JWT authentication for all protected endpoints
 - ✅ CORS middleware (configured for Telegram Mini App)
@@ -998,7 +998,7 @@ curl -X POST "http://your-server-ip:8000/upload/image" \
 
 ---
 
-## 🚀 Deployment Information
+## Deployment Information
 
 **Production Server:**
 - **Location:** `/opt/digital-wardrobe`
@@ -1024,7 +1024,7 @@ docker compose down
 ```
 
 ---
-## 📦 Dependencies
+## Dependencies
 
 **Core:**
 - FastAPI - Web framework
@@ -1047,7 +1047,7 @@ docker compose down
 
 ---
 
-## 📞 Support & Resources
+## Support & Resources
 
 - **Interactive API Docs:** `http://your-server-ip:8000/docs`
 - **GitHub Repository:** `https://github.com/Mrxfg/digital-wardrobe`
