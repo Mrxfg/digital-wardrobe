@@ -50,6 +50,7 @@ class GenerateOutfitSuggestion(BaseModel):
 
 class GenerateOutfitResponse(BaseModel):
     suggestions: list[GenerateOutfitSuggestion]
+    fallback: bool = False
 
 
 class OutfitResponse(BaseModel):

@@ -143,7 +143,7 @@ def generate_outfits(
     # Call AI service
     from app.services.ai_stylist import generate_outfits as ai_generate
 
-    suggestions = ai_generate(items_by_category)
+    suggestions, was_fallback = ai_generate(items_by_category)
 
     # Build response with item details
     from app.schemas.outfit import GenerateOutfitItem, GenerateOutfitResponse, GenerateOutfitSuggestion
@@ -172,7 +172,7 @@ def generate_outfits(
                 )
             )
 
-    return GenerateOutfitResponse(suggestions=result_suggestions)
+    return GenerateOutfitResponse(suggestions=result_suggestions, fallback=was_fallback)
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
