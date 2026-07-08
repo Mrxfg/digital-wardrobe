@@ -369,6 +369,7 @@ def permanent_delete_capsule(
     )
     for outfit in outfits:
         db.delete(outfit)
+    db.flush()  # Ensure outfits are deleted before capsule FK check
 
     # CapsuleItem cascade will handle capsule_items
     db.delete(capsule)
