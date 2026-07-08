@@ -14,6 +14,7 @@ from app.models.users import User  # noqa: F401
 from app.models.wear_record import WearRecord  # noqa: F401
 from app.routers.auth import router as auth_router
 from app.routers.bot import router as bot_router
+from app.routers.bot_communication import router as bot_communication_router
 from app.routers.capsules import router as capsules_router
 from app.routers.clothes import router as clothes_router
 from app.routers.outfits import router as outfits_router
@@ -49,6 +50,7 @@ app.include_router(capsules_router)
 app.include_router(upload_router)
 app.include_router(weather_router)
 app.include_router(bot_router)
+app.include_router(bot_communication_router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
