@@ -23,6 +23,8 @@ class User(Base):
 
     city = Column(String, nullable=True)
 
+    timezone = Column(String, default="Europe/Moscow")
+
     notification_hour = Column(Integer, default=19)
 
     notification_minute = Column(Integer, default=0)
