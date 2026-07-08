@@ -361,6 +361,16 @@ def permanent_delete_capsule(
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
 
+    # Permanently delete all outfits belonging to this capsule
+    outfits = (
+        db.query(Outfit)
+        .filter(Outfit.capsule_id == capsule_id, Outfit.user_id == current_user["user_id"])
+        .all()
+    )
+    for outfit in outfits:
+        db.delete(outfit)
+
+    # CapsuleItem cascade will handle capsule_items
     db.delete(capsule)
     db.commit()
 
