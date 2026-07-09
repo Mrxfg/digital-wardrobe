@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -22,5 +22,13 @@ class User(Base):
     longitude = Column(Float, nullable=True)
 
     city = Column(String, nullable=True)
+
+    timezone = Column(String, default="Europe/Moscow")
+
+    notification_hour = Column(Integer, default=19)
+
+    notification_minute = Column(Integer, default=0)
+
+    notifications_enabled = Column(Boolean, default=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -9,6 +9,7 @@ from app.dependencies.auth import get_current_user
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
+from app.models.users import User
 from app.models.wear_record import WearRecord
 from app.schemas.wear_record import (
     WearRecordCreate,
@@ -17,6 +18,22 @@ from app.schemas.wear_record import (
 )
 
 router = APIRouter(prefix="/wear-records", tags=["Wear Records"])
+
+
+@router.get("/check-today")
+def check_worn_today(
+    telegram_id: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """Check if user has already logged wear records today.
+    Used by the Telegram bot to avoid duplicate notifications (US-15)."""
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if not user:
+        return {"has_worn_today": False}
+
+    today = date.today()
+    record = db.query(WearRecord).filter(WearRecord.user_id == user.id, WearRecord.worn_date == today).first()
+    return {"has_worn_today": record is not None}
 
 
 @router.post("/", response_model=WearRecordResponse, status_code=status.HTTP_201_CREATED)
