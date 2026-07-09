@@ -15,7 +15,9 @@ def _seed_wardrobe(db_session):
     items = [
         ClothingItem(id=1, user_id=1, name="Blue Shirt", category="top", color="blue", season="summer", material="cotton"),
         ClothingItem(id=2, user_id=1, name="Black Jeans", category="bottom", color="black", season="all", material="denim"),
-        ClothingItem(id=3, user_id=1, name="White Sneakers", category="shoes", color="white", season="all", material="leather"),
+        ClothingItem(
+            id=3, user_id=1, name="White Sneakers", category="shoes", color="white", season="all", material="leather"
+        ),
     ]
     for item in items:
         db_session.add(item)
@@ -208,10 +210,7 @@ class TestAiChatModel:
         db_session.commit()
 
         records = (
-            db_session.query(AiChatHistory)
-            .filter(AiChatHistory.user_id == 1)
-            .order_by(AiChatHistory.created_at.asc())
-            .all()
+            db_session.query(AiChatHistory).filter(AiChatHistory.user_id == 1).order_by(AiChatHistory.created_at.asc()).all()
         )
         assert [r.message for r in records] == ["first", "second", "third"]
 

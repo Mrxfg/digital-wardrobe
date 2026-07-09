@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
+from app.models.ai_chat import AiChatHistory  # noqa: F401
 from app.models.capsule import Capsule  # noqa: F401
 from app.models.capsule_item import CapsuleItem  # noqa: F401
 from app.models.clothing_item import ClothingItem  # noqa: F401
@@ -11,7 +12,6 @@ from app.models.outfit import Outfit  # noqa: F401
 from app.models.outfit_item import OutfitItem  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.users import User  # noqa: F401
-from app.models.ai_chat import AiChatHistory  # noqa: F401
 from app.models.wear_record import WearRecord  # noqa: F401
 from app.routers.ai_stylist import router as ai_stylist_router
 from app.routers.auth import router as auth_router
