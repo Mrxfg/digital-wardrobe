@@ -32,11 +32,7 @@ def check_worn_today(
         return {"has_worn_today": False}
 
     today = date.today()
-    record = (
-        db.query(WearRecord)
-        .filter(WearRecord.user_id == user.id, WearRecord.worn_date == today)
-        .first()
-    )
+    record = db.query(WearRecord).filter(WearRecord.user_id == user.id, WearRecord.worn_date == today).first()
     return {"has_worn_today": record is not None}
 
 
