@@ -79,7 +79,7 @@ def get_users_to_notify(hour: int, minute: int = 0, db: Session = Depends(get_db
     users = (
         db.query(User)
         .filter(
-            User.notifications_enabled == True,
+            User.notifications_enabled.is_(True),
             User.notification_hour == hour,
             User.notification_minute == minute,
         )
