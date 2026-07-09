@@ -117,6 +117,113 @@ def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
     return outfits
 
 
+def _build_chat_prompt(wardrobe_text: str, message: str, history: list[dict], weather_text: str = "") -> str:
+    """Build a prompt for Qwen chat with history context."""
+    weather_section = ""
+    if weather_text:
+        weather_section = f"\nCurrent weather: {weather_text}\nUse this weather info when suggesting outfits."
+
+    system_prompt = f"""You are a professional AI stylist. Keep answers SHORT — 2-3 sentences max.
+
+The user's wardrobe consists of:
+{wardrobe_text}
+{weather_section}
+
+Rules:
+- Recommend ONLY items that exist in the user's wardrobe above
+- If the user asks about something not in their wardrobe, suggest the closest alternative from what they have
+- Keep answers CONCISE — 2-3 sentences, no long explanations
+- Use emojis sparingly
+- When suggesting an outfit, name the specific items from their wardrobe
+- Consider seasons, weather, and occasions"""
+
+    messages = [{"role": "system", "content": system_prompt}]
+
+    for h in history:
+        messages.append({"role": h["role"], "content": h["message"]})
+
+    messages.append({"role": "user", "content": message})
+    return messages
+
+
+def chat_with_ai(
+    wardrobe_text: str,
+    message: str,
+    history: list[dict],
+    weather_text: str = "",
+) -> tuple[str, bool]:
+    """Send a chat message to Qwen AI and get a stylist response.
+
+    Returns a tuple of (reply_text, was_fallback).
+    history is a list of dicts with 'role' and 'message' keys.
+    """
+    api_key = _get_api_key()
+
+    if not api_key:
+        logger.warning("QWEN_API_KEY not set, using fallback response")
+        return _fallback_chat_response(message), True
+
+    messages = _build_chat_prompt(wardrobe_text, message, history, weather_text)
+
+    payload = {
+        "model": QWEN_MODEL,
+        "messages": messages,
+        "temperature": 0.8,
+        "max_tokens": 1024,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(QWEN_API_URL, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            if content:
+                return content.strip(), False
+
+    except httpx.TimeoutException:
+        logger.warning("Qwen API timed out on chat request")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Qwen API error: {e.response.status_code} - {e.response.text}")
+    except (httpx.RequestError, KeyError, TypeError) as e:
+        logger.error(f"Qwen API failed: {e}")
+
+    return _fallback_chat_response(message), True
+
+
+def _fallback_chat_response(message: str) -> str:
+    """Generate a fallback response when AI is unavailable."""
+    message_lower = message.lower()
+
+    if "wear" in message_lower or "outfit" in message_lower:
+        return (
+            "👔 I'd suggest checking your wardrobe for a top and bottom combination "
+            "that matches the weather today! You can use the outfit generator to get "
+            "AI-powered suggestions."
+        )
+    if "color" in message_lower or "match" in message_lower:
+        return (
+            "🎨 Great question! As a rule of thumb: neutral colors (black, white, gray, navy) "
+            "go with almost anything. Try pairing one bold item with neutrals for a balanced look."
+        )
+    if "weather" in message_lower or "cold" in message_lower or "hot" in message_lower:
+        return (
+            "🌤️ Check the weather section in the app! Layer your outfit accordingly — "
+            "a light jacket for cool mornings that can come off when it warms up."
+        )
+
+    return (
+        "💡 I'm your AI stylist! Ask me about outfit combinations, color matching, "
+        "what to wear for specific occasions, or how to style items from your wardrobe."
+    )
+
+
 def generate_outfits(items_by_category: dict[str, list[dict]]) -> tuple[list[dict], bool]:
     """Generate outfit combinations using Qwen AI with fallback.
 
