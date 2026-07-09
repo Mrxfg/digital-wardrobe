@@ -11,7 +11,9 @@ from app.models.outfit import Outfit  # noqa: F401
 from app.models.outfit_item import OutfitItem  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.users import User  # noqa: F401
+from app.models.ai_chat import AiChatHistory  # noqa: F401
 from app.models.wear_record import WearRecord  # noqa: F401
+from app.routers.ai_stylist import router as ai_stylist_router
 from app.routers.auth import router as auth_router
 from app.routers.bot import router as bot_router
 from app.routers.bot_communication import router as bot_communication_router
@@ -49,6 +51,7 @@ app.include_router(auth_router)
 app.include_router(capsules_router)
 app.include_router(upload_router)
 app.include_router(weather_router)
+app.include_router(ai_stylist_router)
 app.include_router(bot_router)
 app.include_router(bot_communication_router)
 
