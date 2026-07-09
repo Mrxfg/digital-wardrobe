@@ -117,12 +117,17 @@ def _generate_fallback(items_by_category: dict[str, list[dict]]) -> list[dict]:
     return outfits
 
 
-def _build_chat_prompt(wardrobe_text: str, message: str, history: list[dict]) -> str:
+def _build_chat_prompt(wardrobe_text: str, message: str, history: list[dict], weather_text: str = "") -> str:
     """Build a prompt for Qwen chat with history context."""
+    weather_section = ""
+    if weather_text:
+        weather_section = f"\nCurrent weather: {weather_text}\nUse this weather info when suggesting outfits."
+
     system_prompt = f"""You are a professional AI stylist. You help users choose outfits and give fashion advice.
 
 The user's wardrobe consists of:
 {wardrobe_text}
+{weather_section}
 
 Rules:
 - Recommend ONLY items that exist in the user's wardrobe above
@@ -145,6 +150,7 @@ def chat_with_ai(
     wardrobe_text: str,
     message: str,
     history: list[dict],
+    weather_text: str = "",
 ) -> tuple[str, bool]:
     """Send a chat message to Qwen AI and get a stylist response.
 
@@ -157,7 +163,7 @@ def chat_with_ai(
         logger.warning("QWEN_API_KEY not set, using fallback response")
         return _fallback_chat_response(message), True
 
-    messages = _build_chat_prompt(wardrobe_text, message, history)
+    messages = _build_chat_prompt(wardrobe_text, message, history, weather_text)
 
     payload = {
         "model": QWEN_MODEL,

@@ -7,8 +7,10 @@ from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.ai_chat import AiChatHistory
 from app.models.clothing_item import ClothingItem
+from app.models.users import User
 from app.schemas.ai_chat import ChatRequest, ChatResponse
 from app.services.ai_stylist import chat_with_ai
+from app.services.weather import fetch_weather, get_city_name
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/ai-stylist", tags=["AI Stylist"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-def ai_chat(
+async def ai_chat(
     body: ChatRequest,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -47,8 +49,25 @@ def ai_chat(
             color = item.color or "unknown color"
             name = item.name or "unnamed item"
             category = item.category or "other"
-            wardrobe_lines.append(f"- {name} ({color}, {category})")
+            season = item.season or "any season"
+            wardrobe_lines.append(f"- {name} ({color}, {category}, {season})")
         wardrobe_text = "\n".join(wardrobe_lines)
+
+    # Fetch current weather for context
+    weather_text = ""
+    user = db.query(User).filter(User.id == user_id).first()
+    if user and user.latitude is not None and user.longitude is not None:
+        try:
+            weather_data = await fetch_weather(user.latitude, user.longitude)
+            if weather_data:
+                city = user.city or await get_city_name(user.latitude, user.longitude) or "your location"
+                weather_text = (
+                    f"Current weather in {city}: {weather_data.weather_description}, "
+                    f"temperature {weather_data.temperature}°C (feels like {weather_data.feels_like}°C), "
+                    f"humidity {weather_data.humidity}%, wind {weather_data.wind_speed} km/h"
+                )
+        except Exception:
+            logger.warning(f"Failed to fetch weather for user {user_id}", exc_info=True)
 
     # Load last 10 messages for context (5 user-assistant pairs)
     history_records = (
@@ -68,7 +87,7 @@ def ai_chat(
     db.flush()
 
     # Get AI response
-    reply, was_fallback = chat_with_ai(wardrobe_text, body.message.strip(), history)
+    reply, was_fallback = chat_with_ai(wardrobe_text, body.message.strip(), history, weather_text)
 
     if was_fallback:
         logger.info(f"AI chat fallback used for user {user_id}")
