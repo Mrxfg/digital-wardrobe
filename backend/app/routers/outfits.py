@@ -11,6 +11,7 @@ from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
+from app.models.users import User
 from app.schemas.outfit import (
     GenerateOutfitRequest,
     GenerateOutfitResponse,
@@ -19,6 +20,7 @@ from app.schemas.outfit import (
     OutfitUpdate,
 )
 from app.schemas.outfit_item import OutfitItemCreate, OutfitItemResponse
+from app.services.subscription import check_free_tier_limit, require_premium
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
 
@@ -105,6 +107,9 @@ def generate_outfits(
     db: Session = Depends(get_db),
 ):
     """Generate AI outfit suggestions from the user's wardrobe."""
+    user_obj = db.query(User).filter(User.id == current_user["user_id"]).first()
+    require_premium(user_obj.tier if user_obj else "free")
+
     query = db.query(ClothingItem).filter(
         ClothingItem.user_id == current_user["user_id"],
         ClothingItem.is_deleted.is_(False),
@@ -204,6 +209,9 @@ def create_outfit(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    check_free_tier_limit(db, current_user["user_id"], user.tier if user else "free", "outfits")
+
     # If capsule_id is provided, validate capsule and item membership
     if outfit.capsule_id is not None:
         capsule = (

@@ -10,6 +10,7 @@ from app.models.clothing_item import ClothingItem
 from app.models.users import User
 from app.schemas.ai_chat import ChatRequest, ChatResponse
 from app.services.ai_stylist import chat_with_ai
+from app.services.subscription import require_premium
 from app.services.weather import fetch_weather, get_city_name
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,9 @@ async def ai_chat(
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     user_id = current_user["user_id"]
+
+    user = db.query(User).filter(User.id == user_id).first()
+    require_premium(user.tier if user else "free")
 
     # Load user's wardrobe for context
     items = (
