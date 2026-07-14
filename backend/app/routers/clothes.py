@@ -10,11 +10,13 @@ from app.dependencies.auth import get_current_user
 from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
 from app.models.outfit_item import OutfitItem
+from app.models.users import User
 from app.schemas.clothing_item import (
     ClothingItemCreate,
     ClothingItemResponse,
     ClothingItemUpdate,
 )
+from app.services.subscription import check_free_tier_limit
 
 router = APIRouter(prefix="/clothes", tags=["Clothes"])
 
@@ -161,6 +163,9 @@ def create_clothing(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    check_free_tier_limit(db, current_user["user_id"], user.tier if user else "free", "items")
+
     new_item = ClothingItem(
         user_id=current_user["user_id"],
         name=clothing.name,

@@ -11,6 +11,7 @@ from app.models.capsule_item import CapsuleItem
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.outfit_item import OutfitItem
+from app.models.users import User
 from app.schemas.capsule import (
     CapsuleCreate,
     CapsuleDetailResponse,
@@ -23,6 +24,7 @@ from app.schemas.capsule import (
 from app.schemas.capsule_item import CapsuleItemCreate, CapsuleItemResponse
 from app.schemas.clothing_item import ClothingItemResponse
 from app.schemas.outfit import OutfitResponse
+from app.services.subscription import check_free_tier_limit
 
 router = APIRouter(prefix="/capsules", tags=["Capsules"])
 
@@ -216,6 +218,9 @@ def create_capsule(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    check_free_tier_limit(db, current_user["user_id"], user.tier if user else "free", "capsules")
+
     new_capsule = Capsule(
         user_id=current_user["user_id"],
         name=capsule.name,

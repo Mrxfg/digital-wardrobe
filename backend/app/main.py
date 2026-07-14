@@ -20,6 +20,7 @@ from app.routers.bot_communication import router as bot_communication_router
 from app.routers.capsules import router as capsules_router
 from app.routers.clothes import router as clothes_router
 from app.routers.outfits import router as outfits_router
+from app.routers.subscription import router as subscription_router
 from app.routers.tags import router as tags_router
 from app.routers.upload import router as upload_router
 from app.routers.wear_records import router as wear_records_router
@@ -45,6 +46,7 @@ app.add_middleware(
 
 app.include_router(clothes_router)
 app.include_router(outfits_router)
+app.include_router(subscription_router)
 app.include_router(tags_router)
 app.include_router(wear_records_router)
 app.include_router(auth_router)

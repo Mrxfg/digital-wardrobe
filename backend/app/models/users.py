@@ -17,6 +17,8 @@ class User(Base):
 
     avatar_url = Column(String, nullable=True)
 
+    tier = Column(String, nullable=False, default="free")
+
     latitude = Column(Float, nullable=True)
 
     longitude = Column(Float, nullable=True)

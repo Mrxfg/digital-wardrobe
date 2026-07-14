@@ -1,0 +1,106 @@
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.dependencies.auth import get_current_user
+from app.models.capsule import Capsule
+from app.models.clothing_item import ClothingItem
+from app.models.outfit import Outfit
+from app.models.users import User
+from app.schemas.subscription import SetPremiumRequest, SetPremiumResponse, SubscriptionStatus, TierLimits
+from app.services.subscription import FREE_TIER_LIMITS, PREMIUM_TIER_LIMITS
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/subscription", tags=["Subscription"])
+
+
+@router.get("/status", response_model=SubscriptionStatus)
+def get_subscription_status(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get the current user's subscription status and resource usage."""
+    user_id = current_user["user_id"]
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    tier = user.tier or "free"
+
+    items_count = (
+        db.query(ClothingItem)
+        .filter(
+            ClothingItem.user_id == user_id,
+            ClothingItem.is_deleted.is_(False),
+        )
+        .count()
+    )
+
+    outfits_count = (
+        db.query(Outfit)
+        .filter(
+            Outfit.user_id == user_id,
+            Outfit.is_deleted.is_(False),
+        )
+        .count()
+    )
+
+    capsules_count = (
+        db.query(Capsule)
+        .filter(
+            Capsule.user_id == user_id,
+            Capsule.is_deleted.is_(False),
+        )
+        .count()
+    )
+
+    limits_map = {
+        "free": FREE_TIER_LIMITS,
+        "premium": PREMIUM_TIER_LIMITS,
+    }
+    limits_data = limits_map.get(tier, FREE_TIER_LIMITS)
+
+    limits = TierLimits(
+        max_items=limits_data["items"],
+        max_outfits=limits_data["outfits"],
+        max_capsules=limits_data["capsules"],
+        ai_stylist=(tier == "premium"),
+    )
+
+    return SubscriptionStatus(
+        tier=tier,
+        items_count=items_count,
+        outfits_count=outfits_count,
+        capsules_count=capsules_count,
+        limits=limits,
+    )
+
+
+@router.post("/set-premium", response_model=SetPremiumResponse)
+def set_premium(
+    body: SetPremiumRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Manually set a user to premium tier (admin endpoint, no payments yet)."""
+    user = db.query(User).filter(User.telegram_id == body.telegram_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    old_tier = user.tier
+    user.tier = "premium"
+    db.commit()
+    db.refresh(user)
+
+    message = f"User {user.telegram_id} upgraded from '{old_tier}' to '{user.tier}'"
+
+    return SetPremiumResponse(
+        telegram_id=user.telegram_id,
+        tier=user.tier,
+        message=message,
+    )

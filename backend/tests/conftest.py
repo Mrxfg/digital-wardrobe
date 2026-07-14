@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.database import Base, get_db
 from app.dependencies.auth import get_current_user
 from app.main import app
+from app.models.users import User
 
 # ---------------------------------------------------------------------------
 # SQLite test engine (separate connection args for thread safety)
@@ -51,6 +52,17 @@ def db_session() -> Generator[Session, None, None]:
     """
     Base.metadata.create_all(bind=test_engine)
     session = TestSession()
+
+    # Seed a default test user (premium tier so existing tests pass)
+    user = User(
+        id=1,
+        telegram_id="123456789",
+        username="testuser",
+        tier="premium",
+    )
+    session.add(user)
+    session.commit()
+
     try:
         yield session
     finally:
