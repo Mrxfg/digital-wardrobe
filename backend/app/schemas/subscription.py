@@ -33,8 +33,17 @@ class SetUserTierResponse(BaseModel):
     message: str
 
 
+class PaymentType(str, Enum):
+    bank_card = "AC"        # Банковская карта
+    yoomoney_wallet = "PC"  # Кошелёк YooMoney
+    phone_balance = "MC"    # Баланс телефона
+    cash = "GP"             # Наличные через терминалы
+    sberbank = "SB"         # Сбербанк Онлайн
+    alfa_click = "AB"       # Альфа-Клик
+
+
 class CreatePaymentRequest(BaseModel):
-    payment_type: str = "AC"  # AC = bank card, PC = YooMoney wallet
+    payment_type: PaymentType = PaymentType.bank_card
 
 
 class CreatePaymentResponse(BaseModel):
