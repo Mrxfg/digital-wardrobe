@@ -1,4 +1,11 @@
+from enum import Enum
+
 from pydantic import BaseModel
+
+
+class TierEnum(str, Enum):
+    free = "free"
+    premium = "premium"
 
 
 class TierLimits(BaseModel):
@@ -9,7 +16,7 @@ class TierLimits(BaseModel):
 
 
 class SubscriptionStatus(BaseModel):
-    tier: str
+    tier: TierEnum
     items_count: int
     outfits_count: int
     capsules_count: int
@@ -18,10 +25,10 @@ class SubscriptionStatus(BaseModel):
 
 class SetUserTierRequest(BaseModel):
     telegram_id: str
-    tier: str = "premium"
+    tier: TierEnum = TierEnum.premium
 
 
 class SetUserTierResponse(BaseModel):
     telegram_id: str
-    tier: str
+    tier: TierEnum
     message: str
