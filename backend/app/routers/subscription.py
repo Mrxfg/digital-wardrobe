@@ -1,6 +1,9 @@
+import hashlib
+import hmac
 import logging
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -15,6 +18,9 @@ from app.services.subscription import FREE_TIER_LIMITS, PREMIUM_TIER_LIMITS
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
+
+# Price for premium in RUB
+PREMIUM_PRICE = 490
 
 
 @router.get("/status", response_model=SubscriptionStatus)
