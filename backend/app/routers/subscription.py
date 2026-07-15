@@ -14,8 +14,8 @@ from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.users import User
 from app.schemas.subscription import (
-    CreatePaymentRequest,
     CreatePaymentResponse,
+    PaymentType,
     SetUserTierRequest,
     SetUserTierResponse,
     SubscriptionStatus,
@@ -124,9 +124,9 @@ def set_user_tier(
     )
 
 
-@router.post("/create-payment", response_model=CreatePaymentResponse)
+@router.post("/create-payment/{payment_type}", response_model=CreatePaymentResponse)
 def create_payment(
-    body: CreatePaymentRequest,
+    payment_type: PaymentType,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -151,7 +151,7 @@ def create_payment(
         "receiver": receiver,
         "quickpay-form": "shop",
         "targets": description,
-        "paymentType": body.payment_type,
+        "paymentType": payment_type.value,
         "sum": str(PREMIUM_PRICE),
         "label": user.telegram_id,
     }
