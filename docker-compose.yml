@@ -26,7 +26,10 @@ services:
       DATABASE_URL: postgresql://wardrobe_user:${DB_PASSWORD}@db:5432/digital_wardrobe
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: HS256
+      QWEN_API_KEY: ${QWEN_API_KEY}
       BOT_TOKEN: ${BOT_TOKEN}
+      YOOMONEY_SECRET: ${YOOMONEY_SECRET}
+      YOOMONEY_RECEIVER: ${YOOMONEY_RECEIVER}
       HOST: 0.0.0.0
       PORT: 8000
     volumes:

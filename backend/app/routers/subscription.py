@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -9,12 +10,23 @@ from app.models.capsule import Capsule
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.users import User
-from app.schemas.subscription import SetPremiumRequest, SetPremiumResponse, SubscriptionStatus, TierLimits
+from app.schemas.subscription import (
+    CreatePaymentResponse,
+    PaymentType,
+    SetUserTierRequest,
+    SetUserTierResponse,
+    SubscriptionStatus,
+    TierEnum,
+    TierLimits,
+)
 from app.services.subscription import FREE_TIER_LIMITS, PREMIUM_TIER_LIMITS
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
+
+# Price for premium in RUB
+PREMIUM_PRICE = 490
 
 
 @router.get("/status", response_model=SubscriptionStatus)
@@ -72,7 +84,7 @@ def get_subscription_status(
     )
 
     return SubscriptionStatus(
-        tier=tier,
+        tier=TierEnum(tier),
         items_count=items_count,
         outfits_count=outfits_count,
         capsules_count=capsules_count,
@@ -80,27 +92,73 @@ def get_subscription_status(
     )
 
 
-@router.post("/set-premium", response_model=SetPremiumResponse)
-def set_premium(
-    body: SetPremiumRequest,
+@router.post("/set-tier/{tier}", response_model=SetUserTierResponse)
+def set_user_tier(
+    tier: TierEnum,
+    body: SetUserTierRequest,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Manually set a user to premium tier (admin endpoint, no payments yet)."""
+    """Manually set a user's tier (admin endpoint)."""
     user = db.query(User).filter(User.telegram_id == body.telegram_id).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     old_tier = user.tier
-    user.tier = "premium"
+    tier_value = tier.value
+    user.tier = tier_value
     db.commit()
     db.refresh(user)
 
-    message = f"User {user.telegram_id} upgraded from '{old_tier}' to '{user.tier}'"
+    action = "upgraded" if tier_value == "premium" else "downgraded"
+    message = f"User {user.telegram_id} {action} from '{old_tier}' to '{tier_value}'"
 
-    return SetPremiumResponse(
+    return SetUserTierResponse(
         telegram_id=user.telegram_id,
         tier=user.tier,
         message=message,
+    )
+
+
+@router.post("/create-payment/{payment_type}", response_model=CreatePaymentResponse)
+def create_payment(
+    payment_type: PaymentType,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a YooMoney payment URL for premium subscription.
+
+    Returns a URL the user should open to complete payment.
+    After successful payment, YooMoney sends a webhook to /yoomoney-webhook.
+    """
+    user_id = current_user["user_id"]
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    receiver = os.getenv("YOOMONEY_RECEIVER")
+    if not receiver:
+        raise HTTPException(status_code=500, detail="YOOMONEY_RECEIVER not configured")
+
+    description = "Digital Wardrobe Premium"
+
+    # Build YooMoney quickpay form URL
+    params = {
+        "receiver": receiver,
+        "quickpay-form": "shop",
+        "targets": description,
+        "paymentType": payment_type.value,
+        "sum": str(PREMIUM_PRICE),
+        "label": user.telegram_id,
+    }
+    from urllib.parse import urlencode
+
+    payment_url = f"https://yoomoney.ru/quickpay/confirm.xml?{urlencode(params)}"
+
+    return CreatePaymentResponse(
+        payment_url=payment_url,
+        amount=PREMIUM_PRICE,
+        label=user.telegram_id,
+        description=description,
     )

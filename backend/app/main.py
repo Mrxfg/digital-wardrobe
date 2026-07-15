@@ -25,6 +25,7 @@ from app.routers.tags import router as tags_router
 from app.routers.upload import router as upload_router
 from app.routers.wear_records import router as wear_records_router
 from app.routers.weather import router as weather_router
+from app.routers.yoomoney import router as yoomoney_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -56,6 +57,7 @@ app.include_router(weather_router)
 app.include_router(ai_stylist_router)
 app.include_router(bot_router)
 app.include_router(bot_communication_router)
+app.include_router(yoomoney_router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
