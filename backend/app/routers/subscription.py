@@ -86,8 +86,9 @@ def get_subscription_status(
     )
 
 
-@router.post("/set-tier", response_model=SetUserTierResponse)
+@router.post("/set-tier/{tier}", response_model=SetUserTierResponse)
 def set_user_tier(
+    tier: TierEnum,
     body: SetUserTierRequest,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -99,13 +100,13 @@ def set_user_tier(
         raise HTTPException(status_code=404, detail="User not found")
 
     old_tier = user.tier
-    new_tier = "premium" if body.premium else "free"
-    user.tier = new_tier
+    tier_value = tier.value
+    user.tier = tier_value
     db.commit()
     db.refresh(user)
 
-    action = "upgraded" if body.premium else "downgraded"
-    message = f"User {user.telegram_id} {action} from '{old_tier}' to '{new_tier}'"
+    action = "upgraded" if tier_value == "premium" else "downgraded"
+    message = f"User {user.telegram_id} {action} from '{old_tier}' to '{tier_value}'"
 
     return SetUserTierResponse(
         telegram_id=user.telegram_id,
