@@ -34,7 +34,7 @@ def _verify_sha1(
     ``notification_type&operation_id&amount&currency&datetime&sender&codepro&secret&label``
     """
     raw = f"{notification_type}&{operation_id}&{amount}&{currency}&{datetime}&{sender}&{codepro}&{secret}&{label}"
-    expected = hashlib.sha1(raw.encode("utf-8")).hexdigest()
+    expected = hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()
     return hmac.compare_digest(expected, received_hash)
 
 
