@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -12,7 +13,15 @@ from app.models.capsule import Capsule
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.users import User
-from app.schemas.subscription import SetUserTierRequest, SetUserTierResponse, SubscriptionStatus, TierEnum, TierLimits
+from app.schemas.subscription import (
+    CreatePaymentRequest,
+    CreatePaymentResponse,
+    SetUserTierRequest,
+    SetUserTierResponse,
+    SubscriptionStatus,
+    TierEnum,
+    TierLimits,
+)
 from app.services.subscription import FREE_TIER_LIMITS, PREMIUM_TIER_LIMITS
 
 logger = logging.getLogger(__name__)
@@ -112,4 +121,47 @@ def set_user_tier(
         telegram_id=user.telegram_id,
         tier=user.tier,
         message=message,
+    )
+
+
+@router.post("/create-payment", response_model=CreatePaymentResponse)
+def create_payment(
+    body: CreatePaymentRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a YooMoney payment URL for premium subscription.
+
+    Returns a URL the user should open to complete payment.
+    After successful payment, YooMoney sends a webhook to /yoomoney-webhook.
+    """
+    user_id = current_user["user_id"]
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    receiver = os.getenv("YOOMONEY_RECEIVER")
+    if not receiver:
+        raise HTTPException(status_code=500, detail="YOOMONEY_RECEIVER not configured")
+
+    description = "Digital Wardrobe Premium"
+
+    # Build YooMoney quickpay form URL
+    params = {
+        "receiver": receiver,
+        "quickpay-form": "shop",
+        "targets": description,
+        "paymentType": body.payment_type,
+        "sum": str(PREMIUM_PRICE),
+        "label": user.telegram_id,
+    }
+    from urllib.parse import urlencode
+
+    payment_url = f"https://yoomoney.ru/quickpay/confirm.xml?{urlencode(params)}"
+
+    return CreatePaymentResponse(
+        payment_url=payment_url,
+        amount=PREMIUM_PRICE,
+        label=user.telegram_id,
+        description=description,
     )

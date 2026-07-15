@@ -31,3 +31,14 @@ class SetUserTierResponse(BaseModel):
     telegram_id: str
     tier: TierEnum
     message: str
+
+
+class CreatePaymentRequest(BaseModel):
+    payment_type: str = "AC"  # AC = bank card, PC = YooMoney wallet
+
+
+class CreatePaymentResponse(BaseModel):
+    payment_url: str
+    amount: int
+    label: str
+    description: str
