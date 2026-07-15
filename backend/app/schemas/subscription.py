@@ -25,7 +25,7 @@ class SubscriptionStatus(BaseModel):
 
 class SetUserTierRequest(BaseModel):
     telegram_id: str
-    tier: TierEnum = TierEnum.premium
+    premium: bool = True
 
 
 class SetUserTierResponse(BaseModel):

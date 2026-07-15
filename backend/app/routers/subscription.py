@@ -99,16 +99,16 @@ def set_user_tier(
         raise HTTPException(status_code=404, detail="User not found")
 
     old_tier = user.tier
-    tier_value = body.tier.value  # TierEnum → "free" or "premium"
-    user.tier = tier_value
+    new_tier = "premium" if body.premium else "free"
+    user.tier = new_tier
     db.commit()
     db.refresh(user)
 
-    action = "upgraded" if tier_value == "premium" else "downgraded"
-    message = f"User {user.telegram_id} {action} from '{old_tier}' to '{tier_value}'"
+    action = "upgraded" if body.premium else "downgraded"
+    message = f"User {user.telegram_id} {action} from '{old_tier}' to '{new_tier}'"
 
     return SetUserTierResponse(
         telegram_id=user.telegram_id,
-        tier=body.tier,
+        tier=user.tier,
         message=message,
     )
