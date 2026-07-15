@@ -63,7 +63,6 @@ async def yoomoney_webhook(
         codepro = form_data.get("codepro", "false")
         label = form_data.get("label", "")
         sha1_hash = form_data.get("sha1_hash", "")
-        withdraw_amount = form_data.get("withdraw_amount")
         unaccepted = form_data.get("unaccepted")
 
         logger.info(

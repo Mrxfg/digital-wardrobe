@@ -1,10 +1,7 @@
-import hashlib
-import hmac
 import logging
 import os
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
