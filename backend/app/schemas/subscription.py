@@ -16,11 +16,12 @@ class SubscriptionStatus(BaseModel):
     limits: TierLimits
 
 
-class SetPremiumRequest(BaseModel):
+class SetUserTierRequest(BaseModel):
     telegram_id: str
+    tier: str = "premium"
 
 
-class SetPremiumResponse(BaseModel):
+class SetUserTierResponse(BaseModel):
     telegram_id: str
     tier: str
     message: str

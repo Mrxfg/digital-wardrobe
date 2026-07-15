@@ -12,7 +12,7 @@ from app.models.capsule import Capsule
 from app.models.clothing_item import ClothingItem
 from app.models.outfit import Outfit
 from app.models.users import User
-from app.schemas.subscription import SetPremiumRequest, SetPremiumResponse, SubscriptionStatus, TierLimits
+from app.schemas.subscription import SetUserTierRequest, SetUserTierResponse, SubscriptionStatus, TierLimits
 from app.services.subscription import FREE_TIER_LIMITS, PREMIUM_TIER_LIMITS
 
 logger = logging.getLogger(__name__)
@@ -86,26 +86,31 @@ def get_subscription_status(
     )
 
 
-@router.post("/set-premium", response_model=SetPremiumResponse)
-def set_premium(
-    body: SetPremiumRequest,
+@router.post("/set-tier", response_model=SetUserTierResponse)
+def set_user_tier(
+    body: SetUserTierRequest,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Manually set a user to premium tier (admin endpoint, no payments yet)."""
+    """Manually set a user's tier (admin endpoint). Valid tiers: free, premium."""
+    tier = body.tier.lower()
+    if tier not in ("free", "premium"):
+        raise HTTPException(status_code=400, detail="Invalid tier. Use 'free' or 'premium'")
+
     user = db.query(User).filter(User.telegram_id == body.telegram_id).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     old_tier = user.tier
-    user.tier = "premium"
+    user.tier = tier
     db.commit()
     db.refresh(user)
 
-    message = f"User {user.telegram_id} upgraded from '{old_tier}' to '{user.tier}'"
+    action = "upgraded" if tier == "premium" else "downgraded"
+    message = f"User {user.telegram_id} {action} from '{old_tier}' to '{tier}'"
 
-    return SetPremiumResponse(
+    return SetUserTierResponse(
         telegram_id=user.telegram_id,
         tier=user.tier,
         message=message,

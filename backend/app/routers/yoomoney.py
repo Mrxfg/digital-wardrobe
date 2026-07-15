@@ -1,9 +1,9 @@
 import hashlib
+import hmac
 import logging
 import os
-from typing import Optional
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -41,17 +41,6 @@ def _verify_sha1(
 @router.post("/yoomoney-webhook")
 async def yoomoney_webhook(
     request: Request,
-    notification_type: str = Form(...),
-    operation_id: str = Form(...),
-    amount: str = Form(...),
-    currency: str = Form(...),
-    datetime: str = Form(...),
-    sender: str = Form(...),
-    codepro: str = Form(...),
-    label: str = Form(""),
-    sha1_hash: str = Form(...),
-    withdraw_amount: Optional[str] = Form(None),
-    unaccepted: Optional[str] = Form(None),
 ):
     """Receive payment notifications from YooMoney.
 
@@ -61,12 +50,29 @@ async def yoomoney_webhook(
     db: Session = next(get_db())
 
     try:
+        # Parse form data manually (YooMoney may send extra fields)
+        form = await request.form()
+        form_data = {k: v for k, v in form.items()}
+
+        notification_type = form_data.get("notification_type", "")
+        operation_id = form_data.get("operation_id", "")
+        amount = form_data.get("amount", "0")
+        currency = form_data.get("currency", "")
+        datetime_str = form_data.get("datetime", "")
+        sender = form_data.get("sender", "")
+        codepro = form_data.get("codepro", "false")
+        label = form_data.get("label", "")
+        sha1_hash = form_data.get("sha1_hash", "")
+        withdraw_amount = form_data.get("withdraw_amount")
+        unaccepted = form_data.get("unaccepted")
+
         logger.info(
-            "YooMoney notification received: operation_id=%s, amount=%s, label=%s, sender=%s",
+            "YooMoney notification received: operation_id=%s, amount=%s, label=%s, sender=%s, all_fields=%s",
             operation_id,
             amount,
             label,
             sender,
+            list(form_data.keys()),
         )
 
         # Verify secret exists
@@ -81,7 +87,7 @@ async def yoomoney_webhook(
             operation_id=operation_id,
             amount=amount,
             currency=currency,
-            datetime=datetime,
+            datetime=datetime_str,
             sender=sender,
             codepro=codepro,
             label=label,
